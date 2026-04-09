@@ -37,4 +37,4 @@ ENV PORT=3000
 
 EXPOSE 3000
 
-CMD ["node", "--import", "tsx/esm", "server.ts"]
+CMD ["node_modules/.bin/tsx", "server.ts"]
