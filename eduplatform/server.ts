@@ -5,7 +5,6 @@ import { createServer as createViteServer } from "vite";
 import { fileURLToPath } from "url";
 import { readFileSync } from "fs";
 import Database from "better-sqlite3";
-import fetch from "node-fetch";
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify, importPKCS8 } from "jose";
 import crypto from "crypto";
