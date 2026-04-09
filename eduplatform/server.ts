@@ -46,8 +46,10 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 // VAPID keys for Web Push
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  const appUrl = process.env.APP_URL || "";
+  const vapidSubject = appUrl.startsWith("https://") ? appUrl : "mailto:admin@localhost";
   webpush.setVapidDetails(
-    process.env.APP_URL || "https://localhost:3000",
+    vapidSubject,
     process.env.VAPID_PUBLIC_KEY,
     process.env.VAPID_PRIVATE_KEY,
   );
