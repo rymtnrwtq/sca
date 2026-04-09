@@ -1,0 +1,9 @@
+{
+  "name": "EduPlatform",
+  "description": "Мобильная SaaS-платформа для онлайн-обучения на русском языке. Подписная модель, видеокурсы, PWA.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

@@ -1,0 +1,6 @@
+name = "sca-eduplatform"
+pages_build_output_dir = "dist"
+
+[vars]
+# BACKEND_URL устанавливается в CF Pages Dashboard → Settings → Environment variables
+# BACKEND_URL = "https://your-vps-domain.com"

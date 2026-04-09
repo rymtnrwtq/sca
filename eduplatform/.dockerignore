@@ -1,0 +1,9 @@
+node_modules
+dist
+logs
+.env
+data.db
+*.log
+.DS_Store
+arhive
+doc_kineskope
