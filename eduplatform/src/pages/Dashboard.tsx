@@ -355,7 +355,7 @@ export const Dashboard = () => {
             <p className="text-zinc-500 text-sm">Здесь будут видео, которые вы сохраните</p>
           </div>
         ) : (
-          <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 snap-x snap-mandatory">
+          <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 scroll-pl-4 snap-x snap-mandatory">
             {watchLater.slice(0, 6).map(item => {
               const { progress } = getWatchProgress(item.videoId);
               return (

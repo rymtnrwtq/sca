@@ -102,11 +102,11 @@ export const LandingPage = () => {
 
       {/* Stats */}
       <section>
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
           {STATS.map(({ value, label }) => (
-            <div key={label} className="bg-zinc-900/50 border border-white/5 rounded-[24px] p-4 sm:p-5 text-center">
-              <p className="text-2xl sm:text-3xl font-black text-white mb-1">{value}</p>
-              <p className="text-zinc-500 text-[11px] sm:text-xs font-bold leading-tight">{label}</p>
+            <div key={label} className="bg-zinc-900/50 border border-white/5 rounded-[24px] p-3 sm:p-5 text-center">
+              <p className="text-lg sm:text-3xl font-black text-white mb-1 whitespace-nowrap">{value}</p>
+              <p className="text-zinc-500 text-[9px] sm:text-xs font-bold leading-tight">{label}</p>
             </div>
           ))}
         </div>

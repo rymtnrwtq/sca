@@ -964,7 +964,7 @@ async function startServer() {
           return res.status(403).json({ success: false, message: "Достигнут лимит устройств (5). Удалите одно из устройств в профиле и попробуйте снова." });
         }
 
-        const user = { id: row.id, username: row.username, name: row.name, tier: row.tier, progress: 0 };
+        const user = { id: row.id, username: row.username, name: row.name, tier: row.tier, progress: 0, is_admin: row.is_admin ?? 0 };
         const token = await new SignJWT(user)
           .setProtectedHeader({ alg: "HS256" })
           .setIssuedAt()
@@ -1035,7 +1035,7 @@ async function startServer() {
         return res.status(403).json({ success: false, message: "Достигнут лимит устройств (5). Удалите одно из устройств в профиле." });
       }
 
-      const user = { id: row.id, username: row.username, name: row.name, tier: row.tier, progress: 0 };
+      const user = { id: row.id, username: row.username, name: row.name, tier: row.tier, progress: 0, is_admin: row.is_admin ?? 0 };
       const token = await new SignJWT(user)
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()

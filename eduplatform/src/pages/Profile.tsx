@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
   User as UserIcon, LogOut, Crown, CheckCircle2, Lock, Settings,
-  ChevronRight, EyeOff, Shield, KeyRound, Pencil, Monitor, Trash2,
+  ChevronRight, EyeOff, Eye, Shield, KeyRound, Pencil, Monitor, Trash2,
   Laptop, Smartphone, Sun, Moon, Palette, Check, Bell, BellOff,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,6 +34,9 @@ export const Profile = () => {
   const [pwdLoading, setPwdLoading] = useState(false);
   const [pwdErrors, setPwdErrors] = useState<{ current?: string; new?: string; confirm?: string; general?: string }>({});
   const [pwdSuccess, setPwdSuccess] = useState(false);
+  const [showCurrentPwd, setShowCurrentPwd] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
 
   // Name change state
   const [showNameForm, setShowNameForm] = useState(false);
@@ -293,11 +296,17 @@ export const Profile = () => {
             {showPasswordForm && (
               <form onSubmit={handlePasswordSubmit} className="px-3 pb-2 space-y-2">
                 <div className="space-y-1">
-                  <input type="password" value={currentPwd} onChange={e => { setCurrentPwd(e.target.value); setPwdErrors(p => ({ ...p, current: undefined })); }} placeholder="Текущий пароль" className={cn(inputClass, pwdErrors.current && "border-red-500/60")} autoComplete="current-password" />
+                  <div className="relative">
+                    <input type={showCurrentPwd ? 'text' : 'password'} value={currentPwd} onChange={e => { setCurrentPwd(e.target.value); setPwdErrors(p => ({ ...p, current: undefined })); }} placeholder="Текущий пароль" className={cn(inputClass, pwdErrors.current && "border-red-500/60", "pr-10")} autoComplete="current-password" />
+                    <button type="button" onClick={() => setShowCurrentPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors" tabIndex={-1}>{showCurrentPwd ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                  </div>
                   {pwdErrors.current && <p className="text-red-400 text-xs px-1">{pwdErrors.current}</p>}
                 </div>
                 <div className="space-y-1">
-                  <input type="password" value={newPwd} onChange={e => { setNewPwd(e.target.value); setPwdErrors(p => ({ ...p, new: undefined })); }} placeholder="Новый пароль" className={cn(inputClass, pwdErrors.new && "border-red-500/60")} autoComplete="new-password" />
+                  <div className="relative">
+                    <input type={showNewPwd ? 'text' : 'password'} value={newPwd} onChange={e => { setNewPwd(e.target.value); setPwdErrors(p => ({ ...p, new: undefined })); }} placeholder="Новый пароль" className={cn(inputClass, pwdErrors.new && "border-red-500/60", "pr-10")} autoComplete="new-password" />
+                    <button type="button" onClick={() => setShowNewPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors" tabIndex={-1}>{showNewPwd ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                  </div>
                   {pwdErrors.new && <p className="text-red-400 text-xs px-1">{pwdErrors.new}</p>}
                   {!pwdErrors.new && (
                     <ul className="text-xs space-y-0.5 px-1">
@@ -308,7 +317,10 @@ export const Profile = () => {
                   )}
                 </div>
                 <div className="space-y-1">
-                  <input type="password" value={confirmPwd} onChange={e => { setConfirmPwd(e.target.value); setPwdErrors(p => ({ ...p, confirm: undefined })); }} placeholder="Повторите новый пароль" className={cn(inputClass, pwdErrors.confirm && "border-red-500/60")} autoComplete="new-password" />
+                  <div className="relative">
+                    <input type={showConfirmPwd ? 'text' : 'password'} value={confirmPwd} onChange={e => { setConfirmPwd(e.target.value); setPwdErrors(p => ({ ...p, confirm: undefined })); }} placeholder="Повторите новый пароль" className={cn(inputClass, pwdErrors.confirm && "border-red-500/60", "pr-10")} autoComplete="new-password" />
+                    <button type="button" onClick={() => setShowConfirmPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors" tabIndex={-1}>{showConfirmPwd ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                  </div>
                   {pwdErrors.confirm && <p className="text-red-400 text-xs px-1">{pwdErrors.confirm}</p>}
                 </div>
                 {pwdErrors.general && <p className="text-red-400 text-xs">{pwdErrors.general}</p>}

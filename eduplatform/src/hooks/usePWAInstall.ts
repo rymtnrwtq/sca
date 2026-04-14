@@ -10,6 +10,7 @@ export function usePWAInstall() {
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [showManualGuide, setShowManualGuide] = useState(false);
 
   useEffect(() => {
     // Check if already installed as PWA
@@ -22,12 +23,17 @@ export function usePWAInstall() {
       return;
     }
 
+    if (localStorage.getItem('pwa_installed') === '1') {
+      setIsInstalled(true);
+      return;
+    }
+
     // Detect iOS
     const ua = navigator.userAgent;
     const isiOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     setIsIOS(isiOS);
 
-    // Listen for beforeinstallprompt (Chrome, Edge, Samsung, etc.)
+    // Listen for beforeinstallprompt (Chrome, Edge, Samsung — only fires on HTTPS)
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -35,17 +41,11 @@ export function usePWAInstall() {
 
     window.addEventListener('beforeinstallprompt', handler);
 
-    // Listen for successful install
     window.addEventListener('appinstalled', () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
       localStorage.setItem('pwa_installed', '1');
     });
-
-    // Check localStorage flag
-    if (localStorage.getItem('pwa_installed') === '1' && isStandalone) {
-      setIsInstalled(true);
-    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
@@ -63,6 +63,9 @@ export function usePWAInstall() {
       setDeferredPrompt(null);
     } else if (isIOS) {
       setShowIOSGuide(true);
+    } else {
+      // Fallback: show manual instructions (HTTP or unsupported browser)
+      setShowManualGuide(true);
     }
   }, [deferredPrompt, isIOS]);
 
@@ -70,7 +73,12 @@ export function usePWAInstall() {
     setShowIOSGuide(false);
   }, []);
 
-  const canInstall = !isInstalled && (deferredPrompt !== null || isIOS);
+  const dismissManualGuide = useCallback(() => {
+    setShowManualGuide(false);
+  }, []);
 
-  return { canInstall, isInstalled, isIOS, showIOSGuide, install, dismissIOSGuide };
+  // Show button whenever app is not installed, regardless of prompt availability
+  const canInstall = !isInstalled;
+
+  return { canInstall, isInstalled, isIOS, showIOSGuide, showManualGuide, install, dismissIOSGuide, dismissManualGuide };
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth, TelegramUser } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
 
@@ -38,6 +39,8 @@ export const Auth = () => {
   const [lastName, setLastName] = useState('');
   const [errors, setErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showTgPassword, setShowTgPassword] = useState(false);
 
   // Telegram state
   const [tgData, setTgData] = useState<TelegramUser | null>(null);
@@ -246,15 +249,25 @@ export const Auth = () => {
                   <p className="text-zinc-500 text-xs text-center">
                     Введите пароль от вашего аккаунта SCA
                   </p>
-                  <input
-                    type="password"
-                    placeholder="Пароль"
-                    value={tgPassword}
-                    onChange={e => { setTgPassword(e.target.value); setTgError(''); }}
-                    className={cn(inputBase, tgError ? inputErr : inputOk)}
-                    autoFocus
-                    autoComplete="current-password"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showTgPassword ? 'text' : 'password'}
+                      placeholder="Пароль"
+                      value={tgPassword}
+                      onChange={e => { setTgPassword(e.target.value); setTgError(''); }}
+                      className={cn(inputBase, tgError ? inputErr : inputOk, 'pr-12')}
+                      autoFocus
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowTgPassword(v => !v)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showTgPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                   <input
                     type="text"
                     placeholder="Логин (если Telegram ещё не привязан)"
@@ -296,14 +309,24 @@ export const Auth = () => {
                     autoComplete="username"
                   />
                   <div className="space-y-1">
-                    <input
-                      type="password"
-                      placeholder="Пароль"
-                      value={tgPassword}
-                      onChange={e => { setTgPassword(e.target.value); setTgError(''); }}
-                      className={cn(inputBase, tgError && tgError.toLowerCase().includes('пароль') ? inputErr : inputOk)}
-                      autoComplete="new-password"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showTgPassword ? 'text' : 'password'}
+                        placeholder="Пароль"
+                        value={tgPassword}
+                        onChange={e => { setTgPassword(e.target.value); setTgError(''); }}
+                        className={cn(inputBase, tgError && tgError.toLowerCase().includes('пароль') ? inputErr : inputOk, 'pr-12')}
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowTgPassword(v => !v)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showTgPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                     <ul className="text-xs space-y-0.5 px-1 pt-0.5">
                       <li className={cn(tgPwdMet.len ? 'text-green-500' : 'text-zinc-600')}>• Минимум 8 символов</li>
                       <li className={cn(tgPwdMet.upper ? 'text-green-500' : 'text-zinc-600')}>• Хотя бы одна заглавная буква</li>
@@ -391,14 +414,24 @@ export const Auth = () => {
                 </Field>
 
                 <Field error={errors.password}>
-                  <input
-                    type="password"
-                    placeholder="Пароль"
-                    value={password}
-                    onChange={e => { setPassword(e.target.value); clearError('password'); }}
-                    className={cn(inputBase, errors.password ? inputErr : inputOk)}
-                    autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Пароль"
+                      value={password}
+                      onChange={e => { setPassword(e.target.value); clearError('password'); }}
+                      className={cn(inputBase, errors.password ? inputErr : inputOk, 'pr-12')}
+                      autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(v => !v)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                   {tab === 'register' && (
                     <ul className="text-xs space-y-0.5 px-1 pt-0.5">
                       <li className={cn(pwdMet.len ? 'text-green-500' : 'text-zinc-600')}>• Минимум 8 символов</li>

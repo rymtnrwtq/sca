@@ -65,7 +65,7 @@ async function loadFromDB(token: string): Promise<void> {
 function getOrCreateDeviceId(): string {
   let id = localStorage.getItem('device_id');
   if (!id) {
-    id = crypto.randomUUID();
+    id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     localStorage.setItem('device_id', id);
   }
   return id;
@@ -145,15 +145,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Returns null on success, error message on failure
   const login = async (username: string, password: string): Promise<string | null> => {
+    console.log('AuthContext: login start', { username });
     try {
       const device_id = getOrCreateDeviceId();
+      console.log('AuthContext: device_id', device_id);
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, device_id }),
       });
 
+      console.log('AuthContext: response status', res.status);
       const data = await res.json();
+      console.log('AuthContext: response data', data);
       if (res.ok && data.success && data.token) {
         localStorage.setItem('auth_token', data.token);
         if (data.device_id) localStorage.setItem('device_id', data.device_id);

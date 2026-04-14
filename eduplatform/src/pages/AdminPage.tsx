@@ -1015,7 +1015,7 @@ function LiveBroadcastPanel() {
                 value={url}
                 onChange={e => { setUrl(e.target.value); setUrlSaved(false); setError(''); }}
                 onKeyDown={e => e.key === 'Enter' && !busy && saveUrl()}
-                placeholder="https://kinescope.io/embed/ID  или  https://kinescope.io/ID"
+                placeholder="https://kinescope.io/ID"
                 disabled={busy}
                 className="w-full bg-zinc-950 border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white focus:outline-none focus:border-red-500/50 transition-all placeholder:text-zinc-700 font-mono disabled:opacity-50"
               />
