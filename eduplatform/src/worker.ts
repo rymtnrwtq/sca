@@ -25,9 +25,8 @@ export default {
       const targetUrl = `${env.BACKEND_URL}${url.pathname}${url.search}`;
 
       const headers = new Headers(request.headers);
-      // Remove Host header — forwarding the original workers.dev host causes
-      // Cloudflare to detect a loop and return 403. Let fetch set it from the URL.
-      headers.delete("Host");
+      // Set Host to the backend hostname so nginx can route correctly
+      headers.set("Host", new URL(env.BACKEND_URL).host);
       headers.set("X-Forwarded-For", request.headers.get("CF-Connecting-IP") ?? "");
 
       try {
