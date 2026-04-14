@@ -1,3 +1,0 @@
-# SPA fallback — все маршруты отдают index.html
-# /api/* обрабатывается CF Pages Function (functions/api/[[path]].ts)
-/*    /index.html   200
