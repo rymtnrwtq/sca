@@ -18,6 +18,7 @@ export default defineConfig(() => {
         manifest: false,
         injectManifest: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          globIgnores: ['worker.js'],
         },
         devOptions: { enabled: false },
       }),
