@@ -217,7 +217,7 @@ export const Profile = () => {
                 </span>
               </div>
               <ul className="space-y-2 text-sm text-zinc-500 px-1">
-                <li className="flex items-center gap-2"><Lock size={13} className="text-zinc-700 shrink-0" /> Семинары и эфиры</li>
+                <li className="flex items-center gap-2"><Lock size={13} className="text-zinc-700 shrink-0" /> Материалы и эфиры</li>
                 <li className="flex items-center gap-2"><Lock size={13} className="text-zinc-700 shrink-0" /> Материалы и мастер-классы</li>
               </ul>
               <a

@@ -453,7 +453,7 @@
   },
   "seminars": {
     "id": "seminars",
-    "title": "Семинары",
+    "title": "Материалы",
     "source_url": "https://sca-swimming.com/seminars",
     "categories": [
       {
@@ -3052,7 +3052,7 @@
   },
   "additional_materials": {
     "id": "additional_materials",
-    "title": "Дополнительные материалы",
+    "title": "База знаний",
     "source_url": "https://sca-swimming.com/additional_materials",
     "categories": [
       {

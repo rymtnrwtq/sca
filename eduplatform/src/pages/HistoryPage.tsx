@@ -52,7 +52,7 @@ export const HistoryPage = () => {
             <History size={32} />
           </div>
           <p className="text-zinc-400 text-lg mb-2">История пуста</p>
-          <p className="text-zinc-600">Начните смотреть семинары, чтобы они появились здесь</p>
+          <p className="text-zinc-600">Начните смотреть материалы, чтобы они появились здесь</p>
         </div>
       ) : (
         <div className="space-y-3">
