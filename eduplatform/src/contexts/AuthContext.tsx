@@ -117,17 +117,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const token = localStorage.getItem('auth_token');
     if (!token) { setIsLoading(false); return; }
     fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.ok ? res.json() : null)
-      .then(async data => {
+      .then(async res => {
+        if (res.status === 401) {
+          // Token explicitly rejected — clear it
+          localStorage.removeItem('auth_token');
+          return;
+        }
+        if (!res.ok) {
+          // Server error or restarting — keep token, just show as loading done
+          return;
+        }
+        const data = await res.json();
         if (data?.user) {
           setUser(data.user);
           setTier(data.user.tier);
           await loadFromDB(token);
-        } else {
-          localStorage.removeItem('auth_token');
         }
       })
-      .catch(() => localStorage.removeItem('auth_token'))
+      .catch(() => {
+        // Network error (server restarting) — keep token, don't log out
+      })
       .finally(() => setIsLoading(false));
   }, []);
 
