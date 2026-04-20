@@ -199,12 +199,14 @@ export const Profile = () => {
                 );
               })()}
               <p className="text-zinc-500 text-xs text-center pt-1">Вы имеете полный доступ ко всем семинарам</p>
-              <button
-                onClick={() => navigate('/subscription')}
-                className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-2xl font-medium transition-all text-sm"
+              <a
+                href="https://t.me/tribute/app?profile"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-2xl font-medium transition-all text-sm flex items-center justify-center"
               >
                 Управление подпиской
-              </button>
+              </a>
             </div>
           ) : (
             <div className="space-y-3">
@@ -218,12 +220,14 @@ export const Profile = () => {
                 <li className="flex items-center gap-2"><Lock size={13} className="text-zinc-700 shrink-0" /> Семинары и эфиры</li>
                 <li className="flex items-center gap-2"><Lock size={13} className="text-zinc-700 shrink-0" /> Материалы и мастер-классы</li>
               </ul>
-              <button
-                onClick={() => navigate('/subscription')}
+              <a
+                href="https://web.tribute.tg/s/kCa"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2 text-sm"
               >
                 <Crown size={16} /> Оформить Premium
-              </button>
+              </a>
             </div>
           )}
         </div>

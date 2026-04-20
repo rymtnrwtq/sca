@@ -73,13 +73,16 @@ export const PaywallModal = ({
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={() => { navigate('/profile'); onClose(); }}
+                <a
+                  href="https://web.tribute.tg/s/kCa"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={onClose}
                   className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold text-lg transition-all shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2"
                 >
                   <Crown size={20} />
                   Оформить подписку
-                </button>
+                </a>
               )}
               <button
                 onClick={onClose}
