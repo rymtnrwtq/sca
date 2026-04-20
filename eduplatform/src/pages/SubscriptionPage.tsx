@@ -17,19 +17,6 @@ export const SubscriptionPage = () => {
   const { user, tier } = useAuth();
   const [copied, setCopied] = useState(false);
 
-  if (tier === 'guest') {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center">
-        <Crown size={48} className="text-zinc-700 mb-6" />
-        <h1 className="text-xl font-bold text-white mb-2">Войдите в аккаунт</h1>
-        <p className="text-zinc-500 mb-6 text-sm">Чтобы оформить подписку, нужно авторизоваться</p>
-        <button onClick={() => navigate('/auth')} className="px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold transition-all">
-          Войти / Зарегистрироваться
-        </button>
-      </div>
-    );
-  }
-
   const isActive = tier === 'premium' && user?.subscription_expires_at
     ? new Date(user.subscription_expires_at) > new Date()
     : false;
