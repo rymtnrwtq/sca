@@ -96,7 +96,7 @@ export const SubscriptionPage = () => {
           <ExternalLink size={16} className="opacity-70" />
         </a>
 
-        <
+        <a
           href={TRIBUTE_MANAGE}
           target="_blank"
           rel="noopener noreferrer"
