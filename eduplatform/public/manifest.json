@@ -5,7 +5,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#F97316",
+  "theme_color": "#266bb5",
   "orientation": "portrait-primary",
   "categories": ["education", "sports"],
   "icons": [

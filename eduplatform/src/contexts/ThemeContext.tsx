@@ -29,7 +29,7 @@ export const ACCENT_LABELS: Record<AccentColor, string> = {
 
 export const ACCENT_HEX: Record<AccentColor, string> = {
   orange: '#f97316',
-  blue: '#3b82f6',
+  blue: '#266bb5',
   green: '#22c55e',
   purple: '#a855f7',
   rose: '#f43f5e',

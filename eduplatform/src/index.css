@@ -2,22 +2,22 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --color-orange-500: var(--accent-color, #3b82f6);
-  --color-orange-600: var(--accent-color-dark, #2563eb);
+  --color-orange-500: var(--accent-color, #266bb5);
+  --color-orange-600: var(--accent-color-dark, #1d5291);
 }
 
 /* Default (dark) accent: blue */
 :root {
-  --accent-color: #3b82f6;
-  --accent-color-dark: #2563eb;
-  --accent-shadow: rgba(59, 130, 246, 0.2);
+  --accent-color: #266bb5;
+  --accent-color-dark: #1d5291;
+  --accent-shadow: rgba(38, 107, 181, 0.2);
 }
 
 /* Accent: blue */
 html[data-accent="blue"] {
-  --accent-color: #3b82f6;
-  --accent-color-dark: #2563eb;
-  --accent-shadow: rgba(59, 130, 246, 0.2);
+  --accent-color: #266bb5;
+  --accent-color-dark: #1d5291;
+  --accent-shadow: rgba(38, 107, 181, 0.2);
 }
 
 /* Accent: green */
