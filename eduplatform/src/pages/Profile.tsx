@@ -145,7 +145,7 @@ export const Profile = () => {
     );
   }
 
-  const ACCENTS: AccentColor[] = ['orange', 'blue', 'green', 'purple', 'rose'];
+  const ACCENTS: AccentColor[] = ['blue', 'orange', 'green', 'purple', 'rose'];
 
   return (
     <motion.div

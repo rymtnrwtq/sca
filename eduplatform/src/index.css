@@ -2,6 +2,7 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-orange-400: var(--accent-color, #266bb5);
   --color-orange-500: var(--accent-color, #266bb5);
   --color-orange-600: var(--accent-color-dark, #1d5291);
 }
