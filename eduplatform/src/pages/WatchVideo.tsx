@@ -41,25 +41,25 @@ export const WatchVideo = () => {
         const r = await fetch(`/api/video-from-json/${videoId}`);
         if (r.ok) {
           const data = await r.json();
-          if (data.video) {
+          if (data.id) {
             const v: Lesson = {
-              id: data.video.id,
-              title: data.video.title,
-              description: data.video.description,
-              embedUrl: data.video.embedUrl,
-              posterUrl: data.video.posterUrl,
-              duration: data.video.duration,
-              durationSec: data.video.durationSec,
-              chapters: data.video.chapters,
-              downloads: data.video.downloads,
-              seminarTitle: data.video.seminarTitle,
+              id: data.id,
+              title: data.title,
+              description: data.description,
+              embedUrl: data.embedUrl,
+              posterUrl: data.posterUrl,
+              duration: data.duration,
+              durationSec: data.durationSec,
+              chapters: data.chapters,
+              downloads: data.downloads,
+              seminarTitle: data.seminarTitle,
             };
             setVideo(v);
-            setDownloads(data.video.downloads ?? []);
+            setDownloads(data.downloads ?? []);
 
-            if (data.video.allVideoIds?.length > 1) {
+            if (data.allVideoIds?.length > 1) {
               try {
-                const r2 = await fetch(`/api/videos/by-ids?ids=${data.video.allVideoIds.join(',')}`);
+                const r2 = await fetch(`/api/videos/by-ids?ids=${data.allVideoIds.join(',')}`);
                 const d: { videos: Lesson[] } = r2.ok ? await r2.json() : { videos: [] };
                 setAllVideos(d.videos.length ? d.videos : [v]);
               } catch {
