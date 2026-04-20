@@ -56,6 +56,9 @@ async function loadFromDB(token: string): Promise<void> {
         localStorage.setItem('theme_accent', settings.accent_color);
         document.documentElement.setAttribute('data-accent', settings.accent_color);
       }
+      window.dispatchEvent(new CustomEvent('sca_theme_update', {
+        detail: { color_mode: settings.color_mode, accent_color: settings.accent_color },
+      }));
     }
   } catch (e) {
     console.error('loadFromDB error', e);

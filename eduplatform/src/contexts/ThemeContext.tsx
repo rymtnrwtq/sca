@@ -89,6 +89,16 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     applyTheme(colorMode, accentColor);
   }, [colorMode, accentColor]);
 
+  useEffect(() => {
+    const handler = (e: CustomEvent) => {
+      const { color_mode, accent_color } = e.detail;
+      if (color_mode) setColorModeState(color_mode as ColorMode);
+      if (accent_color) setAccentColorState(accent_color as AccentColor);
+    };
+    window.addEventListener('sca_theme_update', handler as EventListener);
+    return () => window.removeEventListener('sca_theme_update', handler as EventListener);
+  }, []);
+
   const syncThemeFromDB = useCallback(async () => {
     const theme = await fetchThemeFromDB();
     if (theme) {
