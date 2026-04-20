@@ -13,7 +13,7 @@ export const Sidebar = () => {
   const menuItems = [
     { path: '/', icon: Home, label: 'Дашборд' },
     { path: '/learn', icon: BookOpen, label: 'Семинары' },
-    { path: '/chat', icon: MessageSquare, label: 'AI Ассистент' },
+    { path: '/chat', icon: MessageSquare, label: 'AI (Скоро)' },
     { path: '/profile', icon: UserIcon, label: 'Личный кабинет' },
   ];
 

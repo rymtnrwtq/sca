@@ -14,7 +14,7 @@ export const TabBar = () => {
   const tabs = [
     { path: '/', icon: Home, label: 'Главная' },
     { path: '/learn', icon: BookOpen, label: 'Семинары' },
-    { path: '/chat', icon: MessageSquare, label: 'AI Чат' },
+    { path: '/chat', icon: MessageSquare, label: 'AI (Скоро)' },
     { path: '/profile', icon: UserIcon, label: 'Профиль' },
   ];
 
