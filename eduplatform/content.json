@@ -8,19 +8,27 @@
       "additional_materials"
     ],
     "summary": {
-      "live_broadcasts_videos": 51,
+      "live_broadcasts_videos": 52,
       "seminar_videos": 231,
       "additional_videos": 250,
       "total_downloads": 17,
-      "total_videos": 532
+      "total_videos": 533
     }
   },
   "live_broadcasts": {
     "id": "live_broadcasts",
     "title": "Записи эфиров",
     "source_url": "https://sca-swimming.com/live_broadcasts",
-    "total_videos": 51,
+    "total_videos": 52,
     "videos": [
+      {
+        "title": "Новая лекция",
+        "description": "Новая лекция",
+        "popup_id": "popup:videoplayer0",
+        "video_id": "6kDJmiDuHRvkEpLqTmLemH85.192.42.103",
+        "video_url": "https://kinescope.io/embed/6kDJmiDuHRvkEpLqTmLemH85.192.42.103",
+        "type": "kinescope"
+      },
       {
         "title": "Артем МАЧЕКИН",
         "description": "Тема беседы: О спорте, жизни в Америке, все плюсы и минусы, а также главные фишки профессионального спорта",
