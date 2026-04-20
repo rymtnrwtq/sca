@@ -75,7 +75,7 @@ export const LandingPage = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <button
-              onClick={() => navigate('/auth?tab=register')}
+              onClick={() => window.location.href = 'https://menu.borozdov.ru/auth?tab=register'}
               className="group inline-flex items-center justify-center gap-2 px-7 py-4 bg-orange-500 hover:bg-orange-400 text-white font-black text-base rounded-2xl transition-all shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-[1.02] active:scale-[0.98]"
             >
               Зарегистрироваться бесплатно
@@ -160,7 +160,7 @@ export const LandingPage = () => {
             Уже более 4 000 тренеров из 25+ стран используют материалы SCA для профессионального роста
           </p>
           <button
-            onClick={() => navigate('/auth')}
+            onClick={() => window.location.href = 'https://menu.borozdov.ru/auth?tab=register'}
             className="group inline-flex items-center gap-2 px-8 py-4 bg-orange-500 hover:bg-orange-400 text-white font-black text-base rounded-2xl transition-all shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-[1.02] active:scale-[0.98]"
           >
             Создать аккаунт
