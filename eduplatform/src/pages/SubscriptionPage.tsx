@@ -85,20 +85,18 @@ export const SubscriptionPage = () => {
 
       {/* Action buttons */}
       <div className="space-y-3">
-        {!isActive && (
-          <a
-            href={TRIBUTE_BUY}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-2 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold text-lg transition-all shadow-lg shadow-orange-500/20"
-          >
-            <Crown size={20} />
-            Оформить подписку
-            <ExternalLink size={16} className="opacity-70" />
-          </a>
-        )}
-
         <a
+          href={TRIBUTE_BUY}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center justify-center gap-2 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold text-lg transition-all shadow-lg shadow-orange-500/20"
+        >
+          <Crown size={20} />
+          Оформить подписку
+          <ExternalLink size={16} className="opacity-70" />
+        </a>
+
+        <
           href={TRIBUTE_MANAGE}
           target="_blank"
           rel="noopener noreferrer"
