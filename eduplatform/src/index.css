@@ -13,6 +13,13 @@
   --accent-shadow: rgba(38, 107, 181, 0.2);
 }
 
+/* Accent: orange */
+html[data-accent="orange"] {
+  --accent-color: #f97316;
+  --accent-color-dark: #ea580c;
+  --accent-shadow: rgba(249, 115, 22, 0.2);
+}
+
 /* Accent: blue */
 html[data-accent="blue"] {
   --accent-color: #266bb5;
