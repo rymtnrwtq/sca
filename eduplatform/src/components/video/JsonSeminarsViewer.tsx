@@ -529,7 +529,7 @@ export const JsonSeminarsViewer = () => {
 
       {/* Seminar cards */}
       {seminars.length === 0 ? (
-       <div className="text-center py-16 text-zinc-500">Материалы не найдены</div>
+        <div className="text-center py-16 text-zinc-500">Семинары не найдены</div>
       ) : (
        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
          {seminars.map(s => (

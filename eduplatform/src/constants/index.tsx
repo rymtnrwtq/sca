@@ -17,8 +17,8 @@ export const TIER_LABELS: Record<UserTier, string> = {
 export const SECTION_META: Record<string, { label: string }> = {
   live:       { label: 'Live' },
   broadcasts: { label: 'Эфиры' },
-  seminars:   { label: 'Материалы' },
-  materials:  { label: 'База знаний' },
+  seminars:   { label: 'Семинары' },
+  materials:  { label: 'Материалы' },
 };
 
 export const TABS = ['live', 'broadcasts', 'seminars', 'materials'] as const;
