@@ -56,7 +56,7 @@ async function fetchThemeFromDB(): Promise<{ colorMode: ColorMode; accentColor: 
     if (data.color_mode || data.accent_color) {
       return {
         colorMode: (data.color_mode as ColorMode) || 'dark',
-        accentColor: (data.accent_color as AccentColor) || 'orange',
+        accentColor: (data.accent_color as AccentColor) || 'blue',
       };
     }
     return null;
@@ -82,7 +82,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     return (localStorage.getItem('theme_color_mode') as ColorMode) || 'dark';
   });
   const [accentColor, setAccentColorState] = useState<AccentColor>(() => {
-    return (localStorage.getItem('theme_accent') as AccentColor) || 'orange';
+    return (localStorage.getItem('theme_accent') as AccentColor) || 'blue';
   });
 
   useEffect(() => {
