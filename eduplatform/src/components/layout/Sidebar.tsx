@@ -12,7 +12,7 @@ export const Sidebar = () => {
   const navigate = useNavigate();
   const menuItems = [
     { path: '/', icon: Home, label: 'Дашборд' },
-    { path: '/learn', icon: BookOpen, label: 'Семинары' },
+    { path: '/learn', icon: BookOpen, label: 'Материалы' },
     { path: '/chat', icon: MessageSquare, label: 'AI (Скоро)' },
     { path: '/profile', icon: UserIcon, label: 'Личный кабинет' },
   ];
