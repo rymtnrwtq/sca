@@ -160,30 +160,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Returns null on success, error message on failure
   const login = async (username: string, password: string): Promise<string | null> => {
-    console.log('AuthContext: login start', { username });
     try {
       const device_id = getOrCreateDeviceId();
-      console.log('AuthContext: device_id', device_id);
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, device_id }),
       });
 
-      console.log('AuthContext: response status', res.status);
       const data = await res.json();
-      console.log('AuthContext: response data', data);
       if (res.ok && data.success && data.token) {
         localStorage.setItem('auth_token', data.token);
         if (data.device_id) localStorage.setItem('device_id', data.device_id);
         setUser(data.user);
         setTier(data.user.tier);
         await loadFromDB(data.token);
+        const meRes = await fetch('/api/me', { headers: { Authorization: `Bearer ${data.token}` } });
+        if (meRes.ok) { const me = await meRes.json(); if (me?.user) { setUser(me.user); setTier(me.user.tier); } }
         return null;
       }
       return data.message ?? 'Ошибка входа';
     } catch (err) {
-      console.error('Login fetch error:', err);
       return 'Ошибка сети. Проверьте подключение к серверу.';
     }
   };
@@ -275,6 +272,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(data.user);
         setTier(data.user.tier);
         await loadFromDB(data.token);
+        // Re-fetch full user to get subscription_expires_at and telegram fields immediately
+        const meRes = await fetch('/api/me', { headers: { Authorization: `Bearer ${data.token}` } });
+        if (meRes.ok) { const me = await meRes.json(); if (me?.user) { setUser(me.user); setTier(me.user.tier); } }
         return null;
       }
       return data.message ?? 'Ошибка входа через Telegram';

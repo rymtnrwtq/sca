@@ -987,8 +987,10 @@ async function startServer() {
           return res.status(403).json({ success: false, message: "Достигнут лимит устройств (5). Удалите одно из устройств в профиле и попробуйте снова." });
         }
 
-        const user = { id: row.id, username: row.username, name: row.name, tier: row.tier, progress: 0, is_admin: row.is_admin ?? 0 };
-        const token = await new SignJWT(user)
+        try { recomputeUserTier(db, String(row.id)); } catch {}
+        const fullRow = db.prepare("SELECT id, username, name, email, first_name, last_name, tier, is_admin, subscription_expires_at, telegram_id, telegram_username, telegram_first_name, telegram_last_name, telegram_photo_url FROM users WHERE id = ?").get(row.id) as any;
+        const user = { id: fullRow.id, username: fullRow.username, name: fullRow.name, tier: fullRow.tier, progress: 0, is_admin: fullRow.is_admin ?? 0, email: fullRow.email, first_name: fullRow.first_name, last_name: fullRow.last_name, subscription_expires_at: fullRow.subscription_expires_at, telegram_id: fullRow.telegram_id, telegram_username: fullRow.telegram_username, telegram_first_name: fullRow.telegram_first_name, telegram_last_name: fullRow.telegram_last_name, telegram_photo_url: fullRow.telegram_photo_url };
+        const token = await new SignJWT({ id: user.id, username: user.username, name: user.name, tier: user.tier, progress: 0, is_admin: user.is_admin })
           .setProtectedHeader({ alg: "HS256" })
           .setIssuedAt()
           .setExpirationTime("30d")
@@ -1033,8 +1035,11 @@ async function startServer() {
         telegram.username ?? null, telegram.first_name ?? null, telegram.last_name ?? null,
         telegram.photo_url ?? null, telegram.auth_date ? Number(telegram.auth_date) : null, row.id
       );
-      const user = { id: row.id, username: row.username, name: row.name, tier: row.tier, progress: 0, is_admin: row.is_admin ?? 0 };
-      const token = await new SignJWT(user).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("30d").sign(JWT_SECRET);
+      // Recompute tier from Tribute payments before responding
+      try { recomputeUserTier(db, String(row.id)); } catch {}
+      const fullRow = db.prepare("SELECT id, username, name, email, first_name, last_name, tier, is_admin, subscription_expires_at, telegram_id, telegram_username, telegram_first_name, telegram_last_name, telegram_photo_url FROM users WHERE id = ?").get(row.id) as any;
+      const user = { id: fullRow.id, username: fullRow.username, name: fullRow.name, tier: fullRow.tier, progress: 0, is_admin: fullRow.is_admin ?? 0, email: fullRow.email, first_name: fullRow.first_name, last_name: fullRow.last_name, subscription_expires_at: fullRow.subscription_expires_at, telegram_id: fullRow.telegram_id, telegram_username: fullRow.telegram_username, telegram_first_name: fullRow.telegram_first_name, telegram_last_name: fullRow.telegram_last_name, telegram_photo_url: fullRow.telegram_photo_url };
+      const token = await new SignJWT({ id: user.id, username: user.username, name: user.name, tier: user.tier, progress: 0, is_admin: user.is_admin }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("30d").sign(JWT_SECRET);
       log.info({ username: row.username, telegramId }, '[Auth] Telegram signin success');
       res.json({ success: true, token, user, device_id: deviceId });
     } catch (e: any) {
