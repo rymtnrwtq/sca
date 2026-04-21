@@ -431,6 +431,19 @@ export function mountTributeRoutes(
       if (sub) { where.push('tp.subscription_name = ?'); params.push(sub); }
       const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
+      const PAID_EVENTS_SQL = `tp.event_name IN ('new_subscription','renewed_subscription','init_payment','recurrent_payment')`;
+
+      const totals = db.prepare(`
+        SELECT tp.subscription_name, SUM(tp.amount) as total_amount, tp.currency
+        FROM tribute_payments tp
+        LEFT JOIN users u ON u.telegram_id = tp.telegram_user_id
+        ${whereSql ? whereSql + ' AND ' : 'WHERE '} ${PAID_EVENTS_SQL}
+        GROUP BY tp.subscription_name, tp.currency
+      `).all(...params) as any[];
+
+      const grandTotal = totals.reduce((a, r) => a + (r.total_amount || 0), 0);
+      const grandCurrency = totals[0]?.currency || 'rub';
+
       const rows = db.prepare(`
         SELECT tp.id, tp.source, tp.event_name, tp.subscription_name, tp.channel_name,
                tp.amount, tp.currency, tp.period, tp.expires_at, tp.paid_at,
@@ -443,7 +456,7 @@ export function mountTributeRoutes(
         LIMIT ?
       `).all(...params, limit);
 
-      res.json({ payments: rows, allowed: ALLOWED_SUBSCRIPTIONS });
+      res.json({ payments: rows, allowed: ALLOWED_SUBSCRIPTIONS, grandTotal, grandCurrency, totals });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

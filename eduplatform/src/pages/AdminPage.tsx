@@ -1628,6 +1628,8 @@ function TributePaymentsPanel() {
   const [allowed, setAllowed] = useState<string[]>([]);
   const [q, setQ] = useState('');
   const [sub, setSub] = useState('');
+  const [grandTotal, setGrandTotal] = useState<number>(0);
+  const [grandCurrency, setGrandCurrency] = useState<string>('rub');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1639,6 +1641,8 @@ function TributePaymentsPanel() {
       const data = await apiFetch(`/api/admin/tribute-payments?${params}`);
       setRows(data.payments || []);
       setAllowed(data.allowed || []);
+      setGrandTotal(data.grandTotal || 0);
+      setGrandCurrency(data.grandCurrency || 'rub');
     } catch {} finally { setLoading(false); }
   }, [q, sub]);
 
@@ -1649,7 +1653,6 @@ function TributePaymentsPanel() {
 
   const PAID_EVENTS = new Set(['new_subscription', 'renewed_subscription', 'init_payment', 'recurrent_payment']);
   const paidRows = rows.filter(r => PAID_EVENTS.has(r.event_name));
-  const total = paidRows.reduce((a, r) => a + (r.amount || 0), 0);
   const cancelledCount = rows.filter(r => r.event_name === 'cancelled_subscription').length;
 
   return (
@@ -1679,7 +1682,7 @@ function TributePaymentsPanel() {
 
       <div className="flex gap-3 text-sm text-zinc-400 flex-wrap">
         <span>Оплаченных: <b className="text-white">{paidRows.length}</b></span>
-        <span>Сумма: <b className="text-white">{fmtAmount(total, paidRows[0]?.currency || rows[0]?.currency || 'rub')}</b></span>
+        <span>Сумма: <b className="text-white">{fmtAmount(grandTotal, grandCurrency)}</b></span>
         {cancelledCount > 0 && <span className="text-zinc-500">Отменённых (не в сумме): {cancelledCount}</span>}
         <span className="text-zinc-600">Всего записей: {rows.length}</span>
       </div>
