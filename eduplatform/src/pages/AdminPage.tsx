@@ -1647,7 +1647,10 @@ function TributePaymentsPanel() {
   const fmtAmount = (k: number | null, c: string | null) => k == null ? '—' : `${(k / 100).toLocaleString('ru')} ${(c || 'rub').toUpperCase()}`;
   const fmtDate = (s: string | null) => !s ? '—' : new Date(s).toLocaleString('ru', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-  const total = rows.reduce((a, r) => a + (r.amount || 0), 0);
+  const PAID_EVENTS = new Set(['new_subscription', 'renewed_subscription', 'init_payment', 'recurrent_payment']);
+  const paidRows = rows.filter(r => PAID_EVENTS.has(r.event_name));
+  const total = paidRows.reduce((a, r) => a + (r.amount || 0), 0);
+  const cancelledCount = rows.filter(r => r.event_name === 'cancelled_subscription').length;
 
   return (
     <div className="space-y-4">
@@ -1674,9 +1677,11 @@ function TributePaymentsPanel() {
         </button>
       </div>
 
-      <div className="flex gap-3 text-sm text-zinc-400">
-        <span>Платежей: <b className="text-white">{rows.length}</b></span>
-        <span>Сумма: <b className="text-white">{fmtAmount(total, rows[0]?.currency || 'rub')}</b></span>
+      <div className="flex gap-3 text-sm text-zinc-400 flex-wrap">
+        <span>Оплаченных: <b className="text-white">{paidRows.length}</b></span>
+        <span>Сумма: <b className="text-white">{fmtAmount(total, paidRows[0]?.currency || rows[0]?.currency || 'rub')}</b></span>
+        {cancelledCount > 0 && <span className="text-zinc-500">Отменённых (не в сумме): {cancelledCount}</span>}
+        <span className="text-zinc-600">Всего записей: {rows.length}</span>
       </div>
 
       {loading ? (
