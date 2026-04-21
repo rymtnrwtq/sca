@@ -56,6 +56,14 @@ export interface User {
   payment_method_id?: string | null;
   trial_used?: number;
   auto_renew?: number;
+  email?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  telegram_id?: string | null;
+  telegram_username?: string | null;
+  telegram_first_name?: string | null;
+  telegram_last_name?: string | null;
+  telegram_photo_url?: string | null;
 }
 
 export interface CatalogItemDB {

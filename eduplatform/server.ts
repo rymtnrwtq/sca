@@ -11,6 +11,7 @@ import crypto from "crypto";
 import pino from "pino";
 import { z } from "zod";
 import webpush from "web-push";
+import { ensureTributeSchema, mountTributeRoutes, startTributePoller, recomputeUserTier } from "./src/tribute.js";
 
 const log = pino({
   transport: process.env.NODE_ENV !== "production"
@@ -225,6 +226,9 @@ try { db.exec("ALTER TABLE users ADD COLUMN telegram_last_name TEXT"); } catch {
 try { db.exec("ALTER TABLE users ADD COLUMN telegram_photo_url TEXT"); } catch {}
 try { db.exec("ALTER TABLE users ADD COLUMN telegram_auth_date INTEGER"); } catch {}
 try { db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id) WHERE telegram_id IS NOT NULL"); } catch {}
+
+// Tribute: payments table, email/first/last_name on users
+ensureTributeSchema(db);
 
 // Seed catalog (idempotent - only if empty)
 const catalogSeedData = {
@@ -897,6 +901,9 @@ async function startServer() {
       .regex(/[A-Z]/, "Пароль должен содержать хотя бы одну заглавную букву")
       .regex(/[0-9]/, "Пароль должен содержать хотя бы одну цифру"),
     name: z.string().min(2, "Введите имя и фамилию").max(100),
+    email: z.string().trim().max(200).email("Некорректный email").optional().or(z.literal('').transform(() => undefined)),
+    first_name: z.string().trim().max(100).optional(),
+    last_name: z.string().trim().max(100).optional(),
     device_id: z.string().max(64).optional(),
   });
 
@@ -917,13 +924,29 @@ async function startServer() {
         const msg = parsed.error.issues[0]?.message || "Неверные данные";
         return res.status(400).json({ success: false, message: msg });
       }
-      const { username, password, name, device_id } = parsed.data;
+      const { username, password, name, email, first_name, last_name, device_id } = parsed.data;
       log.info({ username }, '[Auth] Register attempt');
 
       const id = crypto.randomUUID?.() || Date.now().toString();
       const hash = await bcrypt.hash(password, 10);
 
-      db.prepare("INSERT INTO users (id, username, name, password_hash) VALUES (?, ?, ?, ?)").run(id, username, name || "", hash);
+      // Derive first/last from `name` if not provided explicitly
+      let fn = first_name || null;
+      let ln = last_name || null;
+      if (!fn && !ln && name) {
+        const parts = name.trim().split(/\s+/);
+        fn = parts[0] || null;
+        ln = parts.slice(1).join(' ') || null;
+      }
+
+      try {
+        db.prepare("INSERT INTO users (id, username, name, password_hash, email, first_name, last_name) VALUES (?, ?, ?, ?, ?, ?, ?)").run(id, username, name || "", hash, email || null, fn, ln);
+      } catch (err: any) {
+        if (err.message?.includes("UNIQUE constraint failed") && err.message?.includes("email")) {
+          return res.status(400).json({ success: false, message: "Этот email уже используется" });
+        }
+        throw err;
+      }
 
       const deviceId = device_id || crypto.randomUUID();
       trackDevice(id, deviceId, req.headers['user-agent'] || '');
@@ -1118,9 +1141,12 @@ async function startServer() {
 
   app.get("/api/me", authenticate, (req: any, res) => {
     try {
-      const row = db.prepare("SELECT id, username, name, tier, is_admin, subscription_expires_at, payment_method_id, trial_used, auto_renew FROM users WHERE id = ?").get(req.user.id) as any;
+      const row = db.prepare("SELECT id, username, name, email, first_name, last_name, tier, is_admin, subscription_expires_at, payment_method_id, trial_used, auto_renew, telegram_id, telegram_username, telegram_first_name, telegram_last_name, telegram_photo_url FROM users WHERE id = ?").get(req.user.id) as any;
       if (!row) return res.status(404).json({ error: "User not found" });
-      res.json({ user: { ...row, progress: 0 } });
+      // Re-evaluate tier from tribute payments on every /api/me hit (cheap, single user)
+      try { recomputeUserTier(db, req.user.id); } catch {}
+      const refreshed = db.prepare("SELECT tier, subscription_expires_at FROM users WHERE id = ?").get(req.user.id) as any;
+      res.json({ user: { ...row, ...refreshed, progress: 0 } });
     } catch (e) {
       res.status(500).json({ error: "Internal server error" });
     }
@@ -2656,6 +2682,14 @@ async function startServer() {
       .replace(/<title>.*?<\/title>/s, '')
       .replace('</head>', `${metaTags}\n  </head>`);
   }
+
+  // Tribute: Telegram link, payment history, admin listing, recompute
+  mountTributeRoutes(app, db, authenticate, requireAdmin, log as any);
+
+  // Tribute webhook poller: fetches events from the companion container
+  // that receives Tribute's official webhooks and stores them in its own SQLite.
+  const tributeWebhookUrl = process.env.TRIBUTE_WEBHOOK_URL || 'http://tribute-webhook:8080';
+  startTributePoller(db, { webhookUrl: tributeWebhookUrl, intervalMs: 30_000, log: log as any });
 
   // --- Vite Integration ---
 

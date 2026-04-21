@@ -1344,7 +1344,7 @@ export const AdminPage = () => {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
 
-  const [adminTab, setAdminTab] = useState<'users' | 'broadcasts' | 'notifications' | 'analytics'>('users');
+  const [adminTab, setAdminTab] = useState<'users' | 'broadcasts' | 'notifications' | 'analytics' | 'payments'>('users');
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -1434,11 +1434,22 @@ export const AdminPage = () => {
             >
               <Video size={15} /> Аналитика
             </button>
+            <button
+              onClick={() => { setAdminTab('payments'); setSelectedUserId(null); }}
+              className={cn(
+                "shrink-0 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold transition-all",
+                adminTab === 'payments' ? "bg-white/10 text-white" : "text-zinc-500 hover:text-zinc-300"
+              )}
+            >
+              <CreditCard size={15} /> Платежи
+            </button>
           </div>
         </div>
       </header>
 
       {adminTab === 'analytics' && <AnalyticsPanel />}
+
+      {adminTab === 'payments' && <TributePaymentsPanel />}
 
       {adminTab === 'broadcasts' && <LiveBroadcastPanel />}
 
@@ -1570,3 +1581,132 @@ export const AdminPage = () => {
     </motion.div>
   );
 };
+
+// ─── Tribute Payments Panel ──────────────────────────────────────────────────
+
+interface TributePayment {
+  id: number;
+  source: string;
+  event_name: string;
+  subscription_name: string;
+  channel_name: string | null;
+  amount: number | null;
+  currency: string | null;
+  period: string | null;
+  expires_at: string | null;
+  paid_at: string | null;
+  telegram_user_id: string | null;
+  telegram_username: string | null;
+  user_id: string | null;
+  username: string | null;
+  user_name: string | null;
+}
+
+function TributePaymentsPanel() {
+  const [rows, setRows] = useState<TributePayment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [allowed, setAllowed] = useState<string[]>([]);
+  const [q, setQ] = useState('');
+  const [sub, setSub] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (q) params.set('q', q);
+      if (sub) params.set('subscription_name', sub);
+      params.set('limit', '500');
+      const data = await apiFetch(`/api/admin/tribute-payments?${params}`);
+      setRows(data.payments || []);
+      setAllowed(data.allowed || []);
+    } catch {} finally { setLoading(false); }
+  }, [q, sub]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const fmtAmount = (k: number | null, c: string | null) => k == null ? '—' : `${(k / 100).toLocaleString('ru')} ${(c || 'rub').toUpperCase()}`;
+  const fmtDate = (s: string | null) => !s ? '—' : new Date(s).toLocaleString('ru', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  const total = rows.reduce((a, r) => a + (r.amount || 0), 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex-1 min-w-[200px] relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Поиск по @username / tg id / логину"
+            className="w-full bg-zinc-900/60 border border-white/5 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/40"
+          />
+        </div>
+        <select
+          value={sub}
+          onChange={e => setSub(e.target.value)}
+          className="bg-zinc-900/60 border border-white/5 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none"
+        >
+          <option value="">Все подписки</option>
+          {allowed.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+        <button onClick={load} className="px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-sm text-white">
+          Обновить
+        </button>
+      </div>
+
+      <div className="flex gap-3 text-sm text-zinc-400">
+        <span>Платежей: <b className="text-white">{rows.length}</b></span>
+        <span>Сумма: <b className="text-white">{fmtAmount(total, rows[0]?.currency || 'rub')}</b></span>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : rows.length === 0 ? (
+        <p className="text-zinc-500 text-center py-12">Нет данных</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-zinc-500 text-xs uppercase tracking-wider border-b border-white/5">
+                <th className="text-left py-2 px-3">Дата</th>
+                <th className="text-left py-2 px-3">Пользователь</th>
+                <th className="text-left py-2 px-3">Подписка</th>
+                <th className="text-left py-2 px-3">Событие</th>
+                <th className="text-right py-2 px-3">Сумма</th>
+                <th className="text-left py-2 px-3">Истекает</th>
+                <th className="text-left py-2 px-3">Источник</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r.id} className="border-b border-white/5 hover:bg-white/5">
+                  <td className="py-2 px-3 text-zinc-400 whitespace-nowrap">{fmtDate(r.paid_at)}</td>
+                  <td className="py-2 px-3">
+                    {r.username ? (
+                      <div>
+                        <p className="text-white">{r.user_name || r.username}</p>
+                        <p className="text-zinc-500 text-xs">@{r.username}</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-zinc-400">{r.telegram_username ? `@${r.telegram_username}` : '—'}</p>
+                        <p className="text-zinc-600 text-xs">TG: {r.telegram_user_id}</p>
+                      </div>
+                    )}
+                  </td>
+                  <td className="py-2 px-3 text-zinc-300">{r.subscription_name}</td>
+                  <td className="py-2 px-3 text-zinc-400">{r.event_name}</td>
+                  <td className="py-2 px-3 text-right text-white">{fmtAmount(r.amount, r.currency)}</td>
+                  <td className="py-2 px-3 text-zinc-500 whitespace-nowrap">{fmtDate(r.expires_at)}</td>
+                  <td className="py-2 px-3"><span className="text-xs text-zinc-500 uppercase">{r.source}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

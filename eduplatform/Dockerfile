@@ -23,8 +23,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
 # Copy server and config files
-COPY server.ts tsconfig.json ./
+COPY server.ts tsconfig.json import_tribute_xlsx.ts ./
 COPY public ./public
+# Server imports the Tribute module at runtime
+COPY src/tribute.ts ./src/tribute.ts
 
 # content.json is optional but needed if exists
 COPY --from=builder /app/content.json* ./

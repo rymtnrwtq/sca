@@ -91,9 +91,11 @@ interface AuthContextType {
   isPaywallOpen: boolean;
   setPaywallOpen: (open: boolean) => void;
   login: (username: string, password: string) => Promise<string | null>;
-  register: (username: string, password: string, name: string) => Promise<string | null>;
+  register: (username: string, password: string, name: string, extras?: { email?: string; first_name?: string; last_name?: string }) => Promise<string | null>;
   telegramLogin: (tgUser: TelegramUser, password: string, username?: string) => Promise<string | null>;
   telegramRegister: (tgUser: TelegramUser, password: string, username: string, name?: string) => Promise<string | null>;
+  linkTelegram: (tgUser: TelegramUser) => Promise<string | null>;
+  unlinkTelegram: () => Promise<string | null>;
   logout: () => void;
   continueAsGuest: () => void;
   upgradeToPremium: () => Promise<void>;
@@ -186,13 +188,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Returns null on success, error message on failure
-  const register = async (username: string, password: string, name: string): Promise<string | null> => {
+  const register = async (username: string, password: string, name: string, extras?: { email?: string; first_name?: string; last_name?: string }): Promise<string | null> => {
     try {
       const device_id = getOrCreateDeviceId();
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, name, device_id }),
+        body: JSON.stringify({ username, password, name, device_id, ...(extras || {}) }),
       });
 
       const data = await res.json();
@@ -255,6 +257,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch {
       return 'Ошибка сети. Проверьте подключение к серверу.';
     }
+  };
+
+  const linkTelegram = async (tgUser: TelegramUser): Promise<string | null> => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return 'Не авторизован';
+    try {
+      const res = await fetch('/api/auth/telegram/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ telegram: tgUser }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.user) { setUser(data.user); setTier(data.user.tier); return null; }
+      return data.message ?? 'Не удалось привязать Telegram';
+    } catch {
+      return 'Ошибка сети';
+    }
+  };
+
+  const unlinkTelegram = async (): Promise<string | null> => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return 'Не авторизован';
+    try {
+      const res = await fetch('/api/auth/telegram/unlink', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) { await refreshUser(); return null; }
+      return data.message ?? 'Не удалось отвязать';
+    } catch { return 'Ошибка сети'; }
   };
 
   const logout = () => {
@@ -336,7 +369,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, tier, isLoading, isPaywallOpen, setPaywallOpen, login, register, telegramLogin, telegramRegister, logout, continueAsGuest, upgradeToPremium, refreshUser, changePassword, changeName }}>
+    <AuthContext.Provider value={{ user, tier, isLoading, isPaywallOpen, setPaywallOpen, login, register, telegramLogin, telegramRegister, linkTelegram, unlinkTelegram, logout, continueAsGuest, upgradeToPremium, refreshUser, changePassword, changeName }}>
       {children}
     </AuthContext.Provider>
   );

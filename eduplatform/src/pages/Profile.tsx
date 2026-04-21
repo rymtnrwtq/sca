@@ -11,6 +11,8 @@ import { useTheme, AccentColor, ACCENT_LABELS, ACCENT_HEX, ColorMode } from '../
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { cn } from '../lib/utils';
 import { TIER_LABELS, HIDDEN_VIDEOS_KEY } from '../constants';
+import { TelegramLinkCard } from '../components/TelegramLinkCard';
+import { PaymentHistoryCard } from '../components/PaymentHistoryCard';
 
 interface Device {
   id: string;
@@ -521,6 +523,9 @@ export const Profile = () => {
           </div>
         )}
       </div>
+
+      <TelegramLinkCard />
+      <PaymentHistoryCard />
     </motion.div>
   );
 };

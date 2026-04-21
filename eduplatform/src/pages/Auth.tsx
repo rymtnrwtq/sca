@@ -14,6 +14,7 @@ declare global {
 interface FieldErrors {
   firstName?: string;
   lastName?: string;
+  email?: string;
   username?: string;
   password?: string;
   general?: string;
@@ -37,6 +38,7 @@ export const Auth = () => {
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [errors, setErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -92,6 +94,8 @@ export const Auth = () => {
     const e: FieldErrors = {};
     if (!firstName.trim()) e.firstName = 'Введите имя';
     if (!lastName.trim()) e.lastName = 'Введите фамилию';
+    if (!email.trim()) e.email = 'Введите email';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) e.email = 'Некорректный email';
     if (!username.trim()) e.username = 'Введите логин';
     else if (username.length < 3) e.username = 'Минимум 3 символа';
     else if (!/^[a-zA-Z0-9_.-]+$/.test(username)) e.username = 'Только латинские буквы, цифры, _ . -';
@@ -120,6 +124,9 @@ export const Auth = () => {
     if (m.includes('имя') || m.includes('фамили')) {
       return { firstName: msg };
     }
+    if (m.includes('email') || m.includes('почт') || m.includes('e-mail')) {
+      return { email: msg };
+    }
     return { general: msg };
   };
 
@@ -134,7 +141,12 @@ export const Auth = () => {
     if (tab === 'login') {
       serverErr = await login(username, password);
     } else {
-      serverErr = await register(username, password, `${firstName.trim()} ${lastName.trim()}`);
+      serverErr = await register(
+        username,
+        password,
+        `${firstName.trim()} ${lastName.trim()}`,
+        { email: email.trim(), first_name: firstName.trim(), last_name: lastName.trim() },
+      );
     }
     setLoading(false);
     if (serverErr) { setErrors(mapServerError(serverErr)); return; }
@@ -378,28 +390,40 @@ export const Auth = () => {
 
               <form onSubmit={handleSubmit} className="space-y-3">
                 {tab === 'register' && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field error={errors.firstName}>
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field error={errors.firstName}>
+                        <input
+                          type="text"
+                          placeholder="Имя"
+                          value={firstName}
+                          onChange={e => { setFirstName(e.target.value); clearError('firstName'); }}
+                          className={cn(inputBase, errors.firstName ? inputErr : inputOk)}
+                          autoComplete="given-name"
+                        />
+                      </Field>
+                      <Field error={errors.lastName}>
+                        <input
+                          type="text"
+                          placeholder="Фамилия"
+                          value={lastName}
+                          onChange={e => { setLastName(e.target.value); clearError('lastName'); }}
+                          className={cn(inputBase, errors.lastName ? inputErr : inputOk)}
+                          autoComplete="family-name"
+                        />
+                      </Field>
+                    </div>
+                    <Field error={errors.email}>
                       <input
-                        type="text"
-                        placeholder="Имя"
-                        value={firstName}
-                        onChange={e => { setFirstName(e.target.value); clearError('firstName'); }}
-                        className={cn(inputBase, errors.firstName ? inputErr : inputOk)}
-                        autoComplete="given-name"
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={e => { setEmail(e.target.value); clearError('email'); }}
+                        className={cn(inputBase, errors.email ? inputErr : inputOk)}
+                        autoComplete="email"
                       />
                     </Field>
-                    <Field error={errors.lastName}>
-                      <input
-                        type="text"
-                        placeholder="Фамилия"
-                        value={lastName}
-                        onChange={e => { setLastName(e.target.value); clearError('lastName'); }}
-                        className={cn(inputBase, errors.lastName ? inputErr : inputOk)}
-                        autoComplete="family-name"
-                      />
-                    </Field>
-                  </div>
+                  </>
                 )}
 
                 <Field error={errors.username}>
