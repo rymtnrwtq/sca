@@ -154,6 +154,8 @@ export function ingestWebhookEvents(db: Database.Database, events: WebhookEvent[
   let inserted = 0;
   const tx = db.transaction((evs: WebhookEvent[]) => {
     for (const e of evs) {
+      const subName = e.payload__subscription_name || null;
+      if (subName && !ALLOWED_SUBSCRIPTIONS.includes(subName)) continue;
       const extId = `webhook:${e.id}`;
       const tgId = e.payload__telegram_user_id != null ? String(e.payload__telegram_user_id) : null;
       const r = insert.run(
