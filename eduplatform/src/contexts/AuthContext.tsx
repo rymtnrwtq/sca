@@ -96,6 +96,7 @@ interface AuthContextType {
   telegramRegister: (tgUser: TelegramUser, password: string, username: string, name?: string) => Promise<string | null>;
   linkTelegram: (tgUser: TelegramUser) => Promise<string | null>;
   unlinkTelegram: () => Promise<string | null>;
+  telegramSignin: (tgUser: TelegramUser) => Promise<string | null>;
   logout: () => void;
   continueAsGuest: () => void;
   upgradeToPremium: () => Promise<void>;
@@ -259,6 +260,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const telegramSignin = async (tgUser: TelegramUser): Promise<string | null> => {
+    try {
+      const device_id = getOrCreateDeviceId();
+      const res = await fetch('/api/auth/telegram/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram: tgUser, device_id }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.token) {
+        localStorage.setItem('auth_token', data.token);
+        if (data.device_id) localStorage.setItem('device_id', data.device_id);
+        setUser(data.user);
+        setTier(data.user.tier);
+        await loadFromDB(data.token);
+        return null;
+      }
+      return data.message ?? 'Ошибка входа через Telegram';
+    } catch { return 'Ошибка сети'; }
+  };
+
   const linkTelegram = async (tgUser: TelegramUser): Promise<string | null> => {
     const token = localStorage.getItem('auth_token');
     if (!token) return 'Не авторизован';
@@ -369,7 +391,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, tier, isLoading, isPaywallOpen, setPaywallOpen, login, register, telegramLogin, telegramRegister, linkTelegram, unlinkTelegram, logout, continueAsGuest, upgradeToPremium, refreshUser, changePassword, changeName }}>
+    <AuthContext.Provider value={{ user, tier, isLoading, isPaywallOpen, setPaywallOpen, login, register, telegramLogin, telegramRegister, telegramSignin, linkTelegram, unlinkTelegram, logout, continueAsGuest, upgradeToPremium, refreshUser, changePassword, changeName }}>
       {children}
     </AuthContext.Provider>
   );

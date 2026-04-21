@@ -1006,6 +1006,43 @@ async function startServer() {
     }
   });
 
+  // Вход только по Telegram (без пароля) — telegram_id должен быть привязан к аккаунту
+  app.post("/api/auth/telegram/signin", async (req, res) => {
+    try {
+      const { telegram, device_id } = req.body;
+      if (!telegram || !telegram.id) {
+        return res.status(400).json({ success: false, message: "Нет данных Telegram" });
+      }
+      const tgFields: Record<string, string> = {};
+      for (const [k, v] of Object.entries(telegram)) if (v != null) tgFields[k] = String(v);
+      if (!verifyTelegramHash(tgFields)) {
+        return res.status(400).json({ success: false, message: "Недействительные данные Telegram" });
+      }
+      const telegramId = String(telegram.id);
+      const row = db.prepare("SELECT * FROM users WHERE telegram_id = ?").get(telegramId) as any;
+      if (!row) {
+        return res.status(404).json({ success: false, message: "Этот Telegram не привязан ни к одному аккаунту. Войдите по логину и привяжите Telegram в профиле." });
+      }
+      const deviceId = device_id || crypto.randomUUID();
+      const deviceAllowed = trackDevice(row.id, deviceId, req.headers['user-agent'] || '', !!row.is_admin);
+      if (!deviceAllowed) {
+        return res.status(403).json({ success: false, message: "Достигнут лимит устройств (5). Удалите одно из устройств в профиле." });
+      }
+      // Update telegram data
+      db.prepare(`UPDATE users SET telegram_username=?, telegram_first_name=?, telegram_last_name=?, telegram_photo_url=?, telegram_auth_date=? WHERE id=?`).run(
+        telegram.username ?? null, telegram.first_name ?? null, telegram.last_name ?? null,
+        telegram.photo_url ?? null, telegram.auth_date ? Number(telegram.auth_date) : null, row.id
+      );
+      const user = { id: row.id, username: row.username, name: row.name, tier: row.tier, progress: 0, is_admin: row.is_admin ?? 0 };
+      const token = await new SignJWT(user).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("30d").sign(JWT_SECRET);
+      log.info({ username: row.username, telegramId }, '[Auth] Telegram signin success');
+      res.json({ success: true, token, user, device_id: deviceId });
+    } catch (e: any) {
+      log.error(e, '[Auth] Telegram signin error');
+      res.status(500).json({ success: false, message: "Internal server error" });
+    }
+  });
+
   app.post("/api/auth/telegram-login", async (req, res) => {
     try {
       const { telegram, password, username, device_id } = req.body;
