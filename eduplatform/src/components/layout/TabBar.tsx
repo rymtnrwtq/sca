@@ -47,7 +47,7 @@ export const TabBar = () => {
                 />
               )}
               <tab.icon size={22} strokeWidth={isActive ? 2.5 : 2} className="relative z-10" />
-              <span className="text-[11px] font-bold relative z-10 leading-none mt-0.5">{tab.label}</span>
+              <span className="text-[11px] font-bold relative z-10 leading-none mt-0.5 whitespace-nowrap text-center">{tab.label}</span>
             </Link>
           );
         })}

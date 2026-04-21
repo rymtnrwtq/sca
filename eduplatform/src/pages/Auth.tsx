@@ -28,7 +28,7 @@ const Input = ({
         autoComplete={autoComplete}
         autoFocus={autoFocus}
         className={cn(
-          "w-full bg-white/5 border rounded-2xl px-5 py-4 text-white placeholder:text-zinc-600 focus:outline-none transition-colors",
+          "w-full bg-white/5 border rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none transition-colors",
           children ? "pr-12" : "",
           error ? "border-red-500/60 focus:border-red-500" : "border-white/10 focus:border-orange-500",
         )}
@@ -308,7 +308,7 @@ export const Auth = () => {
                   onChange={v => { setEmail(v); setRegErrors(p => ({ ...p, email: '' })); }}
                   error={regErrors.email} autoComplete="email" />
 
-                <Input placeholder="Логин (латиница, цифры, _ . -)" value={username}
+                <Input placeholder="Логин (a-z, 0-9, _ . -)" value={username}
                   onChange={v => { setUsername(v); setRegErrors(p => ({ ...p, username: '' })); }}
                   error={regErrors.username} autoComplete="username" />
 

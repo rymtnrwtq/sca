@@ -17,8 +17,8 @@ export function MobileInstallBanner() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 20, opacity: 0 }}
-          className="fixed bottom-20 left-3 right-3 z-40 md:hidden"
-          style={{ marginBottom: 'max(0px, env(safe-area-inset-bottom))' }}
+          className="fixed left-3 right-3 z-40 md:hidden"
+          style={{ bottom: 'calc(4.5rem + max(8px, env(safe-area-inset-bottom)))' }}
         >
           <div className="bg-zinc-900/95 backdrop-blur-2xl border border-orange-500/20 rounded-2xl p-3 flex items-center gap-3 shadow-xl shadow-black/40">
             <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center shrink-0">
