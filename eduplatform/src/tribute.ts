@@ -55,6 +55,7 @@ export function ensureTributeSchema(db: Database.Database) {
     "ALTER TABLE users ADD COLUMN first_name TEXT",
     "ALTER TABLE users ADD COLUMN last_name TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL",
+    "ALTER TABLE tribute_payments ADD COLUMN period_days INTEGER",
   ]) {
     try { db.exec(sql); } catch {}
   }
@@ -219,6 +220,19 @@ export function startTributePoller(
   opts.log.info({ webhookUrl: opts.webhookUrl, intervalMs: interval }, '[Tribute] Poller started');
 }
 
+const PERIOD_DAYS: Record<string, number> = {
+  monthly: 30,
+  yearly: 365,
+  halfyearly: 183,
+  onetime: 30,
+};
+
+function periodToDays(period: string | null | undefined): number {
+  if (!period) return 30;
+  const p = String(period).toLowerCase().trim();
+  return PERIOD_DAYS[p] ?? 30;
+}
+
 /** XLSX import — filters to ALLOWED_SUBSCRIPTIONS, upserts into tribute_payments with source='xlsx' */
 export async function importXlsx(db: Database.Database, filePath: string, log: Logger): Promise<{ rows: number; inserted: number; touched: number }> {
   const _m = await import('xlsx');
@@ -228,12 +242,15 @@ export async function importXlsx(db: Database.Database, filePath: string, log: L
   if (!ws) throw new Error('Sheet "Subscriptions" not found');
   const rows = XLSX.utils.sheet_to_json<any>(ws);
 
+  // Clean reimport: delete all existing xlsx records
+  db.prepare("DELETE FROM tribute_payments WHERE source = 'xlsx'").run();
+
   const insert = db.prepare(`
-    INSERT OR IGNORE INTO tribute_payments
+    INSERT INTO tribute_payments
       (external_id, source, event_name, telegram_user_id, telegram_username, trb_user_id,
        subscription_id, subscription_name, channel_id, channel_name,
-       amount, currency, period, expires_at, paid_at, raw_json)
-    VALUES (?, 'xlsx', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       amount, currency, period, period_days, expires_at, paid_at, raw_json)
+    VALUES (?, 'xlsx', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   let inserted = 0;
@@ -263,6 +280,12 @@ export async function importXlsx(db: Database.Database, filePath: string, log: L
       const from = String(r['From'] || '');
       const tgUsername = from.startsWith('@') ? from.slice(1) : null;
 
+      const period = r['Period'] ? String(r['Period']) : null;
+      const days = periodToDays(period);
+      const expiresAt = paidAtIso
+        ? new Date(new Date(paidAtIso).getTime() + days * 86400000).toISOString()
+        : null;
+
       const res = insert.run(
         extId,
         eventName,
@@ -275,8 +298,9 @@ export async function importXlsx(db: Database.Database, filePath: string, log: L
         r['Channel'] || null,
         amountKopecks,
         String(r['Currency'] || 'RUB').toLowerCase(),
-        r['Period'] || null,
-        null, // xlsx does not provide expires_at
+        period,
+        days,
+        expiresAt,
         paidAtIso,
         JSON.stringify(r),
       );
