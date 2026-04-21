@@ -8,7 +8,6 @@ export const ALLOWED_SUBSCRIPTIONS = [
   'VIP подписка Ассоциации SCA',
   'Вступление в SCA 🍑',
   'Вступление в Ассоциацию тренеров по плаванию 🍑',
-  'Вступление в ACA 🍑',
 ];
 
 type Logger = {
