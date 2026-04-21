@@ -38,6 +38,8 @@ async function apiFetch(url: string, options: RequestInit = {}) {
 interface AdminUser {
   id: string; username: string; name: string; tier: string;
   is_admin: number; subscription_expires_at: string | null;
+  subscription_started_at?: string | null;
+  last_seen?: string | null;
   notes: string | null; created_at: string;
   watch_count: number; bookmark_count: number;
 }
@@ -362,6 +364,7 @@ function UserDetailPanel({ userId, onClose, onUpdate }: { userId: string; onClos
                 {user.subscription_expires_at && (
                   <span className="text-[10px] font-bold text-zinc-400 flex items-center gap-1.5">
                     <Calendar size={11} className="text-orange-500/60" />
+                    {user.subscription_started_at ? `с ${new Date(user.subscription_started_at).toLocaleDateString('ru')} ` : ''}
                     до {new Date(user.subscription_expires_at).toLocaleDateString('ru')}
                   </span>
                 )}
@@ -744,11 +747,27 @@ function UserDetailPanel({ userId, onClose, onUpdate }: { userId: string; onClos
                   {TIER_LABELS[user.tier]}
                 </span>
               </div>
+              {user.subscription_started_at && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-zinc-500 font-bold">Подключена</span>
+                  <span className="text-white font-bold text-xs">
+                    {new Date(user.subscription_started_at).toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                </div>
+              )}
               {user.subscription_expires_at && (
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-zinc-500 font-bold">Истекает</span>
+                  <span className="text-zinc-500 font-bold">Работает до</span>
                   <span className="text-orange-400 font-bold text-xs">
                     {new Date(user.subscription_expires_at).toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                </div>
+              )}
+              {user.last_seen && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-zinc-500 font-bold">Последний вход</span>
+                  <span className="text-white font-bold text-xs">
+                    {new Date(user.last_seen).toLocaleString('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               )}
@@ -1543,7 +1562,8 @@ export const AdminPage = () => {
                           <div className="hidden sm:flex items-center gap-1.5 text-zinc-500 bg-zinc-950/50 px-2 py-0.5 rounded-lg border border-white/5">
                             <Calendar size={11} className="text-orange-500/50" />
                             <span className="text-[10px] font-black uppercase tracking-wider">
-                              до {new Date(u.subscription_expires_at).toLocaleDateString('ru')}
+                              {u.subscription_started_at ? `${new Date(u.subscription_started_at).toLocaleDateString('ru')} — ` : 'до '}
+                              {new Date(u.subscription_expires_at).toLocaleDateString('ru')}
                             </span>
                           </div>
                         )}

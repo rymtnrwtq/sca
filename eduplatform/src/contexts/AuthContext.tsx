@@ -114,8 +114,15 @@ export const useAuth = (): AuthContextType => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [tier, setTier] = useState<UserTier>('guest');
+  // Optimistically hydrate from cached user so login state survives transient /api/me failures
+  const cachedUser: User | null = (() => {
+    try {
+      const raw = localStorage.getItem('auth_user');
+      return raw && localStorage.getItem('auth_token') ? JSON.parse(raw) : null;
+    } catch { return null; }
+  })();
+  const [user, setUser] = useState<User | null>(cachedUser);
+  const [tier, setTier] = useState<UserTier>(cachedUser?.tier ?? 'guest');
   const [isLoading, setIsLoading] = useState(true);
   const [isPaywallOpen, setPaywallOpen] = useState(false);
 
@@ -127,21 +134,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (res.status === 401) {
           // Token explicitly rejected — clear it
           localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          setUser(null);
+          setTier('guest');
           return;
         }
         if (!res.ok) {
-          // Server error or restarting — keep token, just show as loading done
+          // Server error or restarting — keep cached user, just show as loading done
           return;
         }
         const data = await res.json();
         if (data?.user) {
           setUser(data.user);
           setTier(data.user.tier);
+          try { localStorage.setItem('auth_user', JSON.stringify(data.user)); } catch {}
           await loadFromDB(token);
         }
       })
       .catch(() => {
-        // Network error (server restarting) — keep token, don't log out
+        // Network error (server restarting) — keep token/cached user, don't log out
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -174,9 +185,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (data.device_id) localStorage.setItem('device_id', data.device_id);
         setUser(data.user);
         setTier(data.user.tier);
+        try { localStorage.setItem('auth_user', JSON.stringify(data.user)); } catch {}
         await loadFromDB(data.token);
         const meRes = await fetch('/api/me', { headers: { Authorization: `Bearer ${data.token}` } });
-        if (meRes.ok) { const me = await meRes.json(); if (me?.user) { setUser(me.user); setTier(me.user.tier); } }
+        if (meRes.ok) { const me = await meRes.json(); if (me?.user) { setUser(me.user); setTier(me.user.tier); try { localStorage.setItem('auth_user', JSON.stringify(me.user)); } catch {} } }
         return null;
       }
       return data.message ?? 'Ошибка входа';
@@ -201,6 +213,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (data.device_id) localStorage.setItem('device_id', data.device_id);
         setUser(data.user);
         setTier(data.user.tier);
+        try { localStorage.setItem('auth_user', JSON.stringify(data.user)); } catch {}
         await loadFromDB(data.token);
         return null;
       }
@@ -225,6 +238,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (data.device_id) localStorage.setItem('device_id', data.device_id);
         setUser(data.user);
         setTier(data.user.tier);
+        try { localStorage.setItem('auth_user', JSON.stringify(data.user)); } catch {}
         await loadFromDB(data.token);
         return null;
       }
@@ -248,6 +262,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (data.device_id) localStorage.setItem('device_id', data.device_id);
         setUser(data.user);
         setTier(data.user.tier);
+        try { localStorage.setItem('auth_user', JSON.stringify(data.user)); } catch {}
         await loadFromDB(data.token);
         return null;
       }
@@ -271,10 +286,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (data.device_id) localStorage.setItem('device_id', data.device_id);
         setUser(data.user);
         setTier(data.user.tier);
+        try { localStorage.setItem('auth_user', JSON.stringify(data.user)); } catch {}
         await loadFromDB(data.token);
         // Re-fetch full user to get subscription_expires_at and telegram fields immediately
         const meRes = await fetch('/api/me', { headers: { Authorization: `Bearer ${data.token}` } });
-        if (meRes.ok) { const me = await meRes.json(); if (me?.user) { setUser(me.user); setTier(me.user.tier); } }
+        if (meRes.ok) { const me = await meRes.json(); if (me?.user) { setUser(me.user); setTier(me.user.tier); try { localStorage.setItem('auth_user', JSON.stringify(me.user)); } catch {} } }
         return null;
       }
       return data.message ?? 'Ошибка входа через Telegram';
@@ -291,7 +307,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         body: JSON.stringify({ telegram: tgUser }),
       });
       const data = await res.json();
-      if (res.ok && data.success && data.user) { setUser(data.user); setTier(data.user.tier); return null; }
+      if (res.ok && data.success && data.user) { setUser(data.user); setTier(data.user.tier); try { localStorage.setItem('auth_user', JSON.stringify(data.user)); } catch {} return null; }
       return data.message ?? 'Не удалось привязать Telegram';
     } catch {
       return 'Ошибка сети';
@@ -314,12 +330,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
     setUser(null);
     setTier('guest');
   };
 
   const continueAsGuest = () => {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
     setUser(null);
     setTier('guest');
   };
@@ -333,7 +351,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (data.success && data.user) { setUser(data.user); setTier(data.user.tier); }
+      if (data.success && data.user) { setUser(data.user); setTier(data.user.tier); try { localStorage.setItem('auth_user', JSON.stringify(data.user)); } catch {} }
     } catch (err) {
       console.error('Upgrade error:', err);
     }
@@ -346,7 +364,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
-        if (data?.user) { setUser(data.user); setTier(data.user.tier); }
+        if (data?.user) { setUser(data.user); setTier(data.user.tier); try { localStorage.setItem('auth_user', JSON.stringify(data.user)); } catch {} }
       }
     } catch (err) {
       console.error('Refresh user error:', err);
@@ -382,6 +400,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const data = await res.json();
       if (res.ok && data.success) {
         setUser(data.user);
+        try { localStorage.setItem('auth_user', JSON.stringify(data.user)); } catch {}
         return null;
       }
       return data.message ?? 'Ошибка смены имени';

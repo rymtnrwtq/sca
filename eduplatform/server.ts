@@ -1939,7 +1939,9 @@ async function startServer() {
       let query = `
         SELECT u.id, u.username, u.name, u.tier, u.is_admin, u.subscription_expires_at, u.notes, u.created_at,
           (SELECT COUNT(*) FROM watch_history WHERE user_id = u.id) as watch_count,
-          (SELECT COUNT(*) FROM watch_later WHERE user_id = u.id) as bookmark_count
+          (SELECT COUNT(*) FROM watch_later WHERE user_id = u.id) as bookmark_count,
+          (SELECT MAX(COALESCE(tp.paid_at, tp.created_at)) FROM tribute_payments tp WHERE tp.user_id = u.id) as subscription_started_at,
+          (SELECT MAX(ud.last_seen) FROM user_devices ud WHERE ud.user_id = u.id) as last_seen
         FROM users u
         WHERE u.tier != 'guest'
       `;
@@ -1968,7 +1970,9 @@ async function startServer() {
       const user = db.prepare(`
         SELECT u.id, u.username, u.name, u.tier, u.is_admin, u.subscription_expires_at, u.notes, u.created_at,
           (SELECT COUNT(*) FROM watch_history WHERE user_id = u.id) as watch_count,
-          (SELECT COUNT(*) FROM watch_later WHERE user_id = u.id) as bookmark_count
+          (SELECT COUNT(*) FROM watch_later WHERE user_id = u.id) as bookmark_count,
+          (SELECT MAX(COALESCE(tp.paid_at, tp.created_at)) FROM tribute_payments tp WHERE tp.user_id = u.id) as subscription_started_at,
+          (SELECT MAX(ud.last_seen) FROM user_devices ud WHERE ud.user_id = u.id) as last_seen
         FROM users u WHERE u.id = ?
       `).get(req.params.id) as any;
       if (!user) return res.status(404).json({ error: "User not found" });
