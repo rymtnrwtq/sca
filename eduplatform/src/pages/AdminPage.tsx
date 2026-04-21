@@ -1682,7 +1682,6 @@ function TributePaymentsPanel() {
 
       <div className="flex gap-3 text-sm text-zinc-400 flex-wrap">
         <span>Оплаченных: <b className="text-white">{paidRows.length}</b></span>
-        <span>Сумма: <b className="text-white">{fmtAmount(grandTotal, grandCurrency)}</b></span>
         {cancelledCount > 0 && <span className="text-zinc-500">Отменённых (не в сумме): {cancelledCount}</span>}
         <span className="text-zinc-600">Всего записей: {rows.length}</span>
       </div>

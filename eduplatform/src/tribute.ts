@@ -441,8 +441,8 @@ export function mountTributeRoutes(
         GROUP BY tp.subscription_name, tp.currency
       `).all(...params) as any[];
 
-      const grandTotal = totals.reduce((a, r) => a + (r.total_amount || 0), 0);
-      const grandCurrency = totals[0]?.currency || 'rub';
+      const grandTotal = totals.filter((r: any) => (r.currency || 'rub').toLowerCase() === 'rub').reduce((a: number, r: any) => a + (r.total_amount || 0), 0);
+      const grandCurrency = 'rub';
 
       const rows = db.prepare(`
         SELECT tp.id, tp.source, tp.event_name, tp.subscription_name, tp.channel_name,

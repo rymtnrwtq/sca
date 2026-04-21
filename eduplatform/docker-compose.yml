@@ -17,8 +17,10 @@ services:
       NODE_ENV: production
       PORT: 3000
     volumes:
-      # Persist SQLite database
+      # Persist SQLite database (including WAL files so data survives rebuilds)
       - ./data.db:/app/data.db
+      - ./data.db-shm:/app/data.db-shm
+      - ./data.db-wal:/app/data.db-wal
       # Persist logs
       - ./logs:/app/logs
       # content.json — каталог видео (если есть)
