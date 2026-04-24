@@ -823,22 +823,39 @@ function cleanupBotAuths() {
 }
 
 let botPollOffset = 0;
+
 async function botSend(chatId: number, text: string) {
-  return fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text }),
-  }).catch(() => {});
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    });
+    if (!r.ok) {
+      const body = await r.text();
+      log.warn({ chatId, status: r.status, body }, '[BotAuth] sendMessage failed');
+    }
+  } catch (e: any) {
+    log.warn({ chatId, err: e?.message }, '[BotAuth] sendMessage error');
+  }
 }
 
 async function pollBotUpdates() {
   if (!TELEGRAM_BOT_TOKEN) return;
   try {
     cleanupBotAuths();
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${botPollOffset}&timeout=25&allowed_updates=["message"]`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(30000) });
+
+    // Use POST to avoid URL-encoding issues with allowed_updates
+    const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ offset: botPollOffset, timeout: 25, allowed_updates: ['message'] }),
+      signal: AbortSignal.timeout(30000),
+    });
+
     if (!r.ok) {
-      log.warn({ status: r.status }, '[BotAuth] getUpdates non-OK, will retry');
+      const body = await r.text();
+      log.warn({ status: r.status, body }, '[BotAuth] getUpdates non-OK, will retry');
     } else {
       const data = await r.json() as any;
       for (const update of (data.result || [])) {
@@ -848,9 +865,9 @@ async function pollBotUpdates() {
 
         const chatId: number = msg.chat.id;
         const from = msg.from;
+        if (!from) continue;
 
-        // Accept both "/start CODE" (deep-link button) and plain "CODE" (manual paste)
-        // For any non-command message — always try to treat it as a code
+        // Extract code from "/start CODE" (deep-link) or plain text
         let code: string | null = null;
         if (msg.text.startsWith('/start ')) {
           code = msg.text.slice(7).trim().toUpperCase();
@@ -858,27 +875,44 @@ async function pollBotUpdates() {
           code = msg.text.trim().toUpperCase();
         }
 
-        if (!code) continue; // skip other commands like /start without payload
+        if (!code) continue;
+
+        log.info({ code, chatId, from: from.id }, '[BotAuth] received code candidate');
 
         const entry = pendingBotAuths.get(code);
-        if (!entry) continue; // wrong or expired code — just ignore silently
+        if (!entry) {
+          log.info({ code }, '[BotAuth] code not in pending map — ignoring');
+          continue;
+        }
+
+        log.info({ code, from: from.id }, '[BotAuth] valid code matched');
 
         entry.telegramUser = {
-          id: from.id, first_name: from.first_name, last_name: from.last_name,
-          username: from.username, auth_date: Math.floor(Date.now() / 1000),
+          id: from.id,
+          first_name: from.first_name,
+          last_name: from.last_name,
+          username: from.username,
+          auth_date: Math.floor(Date.now() / 1000),
         };
 
         // Check if this telegram_id is already linked to an account
-        const linkedUser = db.prepare("SELECT id FROM users WHERE telegram_id = ?").get(String(from.id)) as any;
+        let linkedUser: any = null;
+        try {
+          linkedUser = db.prepare("SELECT id FROM users WHERE telegram_id = ?").get(String(from.id));
+        } catch (e: any) {
+          log.warn({ err: e?.message }, '[BotAuth] db lookup error');
+        }
 
-        // Delay reply by 2s so the bot's welcome message renders first
+        log.info({ code, linkedUser: !!linkedUser }, '[BotAuth] sending reply');
+
+        // Delay 2s so the bot welcome message appears first
         setTimeout(() => {
           if (linkedUser) {
             botSend(chatId, '✅ Код верный! Всё работает — вернитесь на сайт, вход выполнен автоматически.');
           } else {
             botSend(chatId,
               '✅ Код верный!\n\n' +
-              'Но вы ещё не зарегистрированы на сайте или Telegram не привязан к аккаунту.\n\n' +
+              'Но ваш Telegram ещё не привязан к аккаунту на сайте.\n\n' +
               '1. Зарегистрируйтесь на сайте (имя, логин, пароль)\n' +
               '2. После регистрации привяжите Telegram в профиле\n\n' +
               'После этого вход через Telegram будет работать.'
@@ -892,11 +926,11 @@ async function pollBotUpdates() {
       log.warn({ err: e?.message }, '[BotAuth] poll error');
     }
   }
-  // Always reschedule — never stop polling
+  // Always reschedule — never stop
   setTimeout(pollBotUpdates, 1000);
 }
+
 if (TELEGRAM_BOT_TOKEN) {
-  // Small delay so server is ready
   setTimeout(pollBotUpdates, 3000);
   log.info('[BotAuth] Bot long-polling started');
 }
