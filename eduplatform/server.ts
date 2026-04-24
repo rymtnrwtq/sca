@@ -824,12 +824,9 @@ function cleanupBotAuths() {
 
 let botPollOffset = 0;
 
-// Route sendMessage through Cloudflare Worker (server is in Russia, direct api.telegram.org blocked)
-const BOT_SEND_URL = `https://tg-oauth-proxy.borozdov.workers.dev/botapi/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-
 async function botSend(chatId: number, text: string) {
   try {
-    const r = await fetch(BOT_SEND_URL, {
+    const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text }),
@@ -900,30 +897,8 @@ async function pollBotUpdates() {
           auth_date: Math.floor(Date.now() / 1000),
         };
 
-        // Check if this telegram_id is already linked to an account
-        let linkedUser: any = null;
-        try {
-          linkedUser = db.prepare("SELECT id FROM users WHERE telegram_id = ?").get(String(from.id));
-        } catch (e: any) {
-          log.warn({ err: e?.message }, '[BotAuth] db lookup error');
-        }
-
-        log.info({ code, linkedUser: !!linkedUser }, '[BotAuth] sending reply');
-
-        // Delay 2s so the bot welcome message appears first
-        setTimeout(() => {
-          if (linkedUser) {
-            botSend(chatId, '✅ Код верный! Всё работает — вернитесь на сайт, вход выполнен автоматически.');
-          } else {
-            botSend(chatId,
-              '✅ Код верный!\n\n' +
-              'Но ваш Telegram ещё не привязан к аккаунту на сайте.\n\n' +
-              '1. Зарегистрируйтесь на сайте (имя, логин, пароль)\n' +
-              '2. После регистрации привяжите Telegram в профиле\n\n' +
-              'После этого вход через Telegram будет работать.'
-            );
-          }
-        }, 2000);
+        log.info({ code, chatId }, '[BotAuth] sending reply');
+        botSend(chatId, 'Вернитесь на сайт.');
       }
     }
   } catch (e: any) {
