@@ -850,15 +850,15 @@ async function pollBotUpdates() {
         const from = msg.from;
 
         // Accept both "/start CODE" (deep-link button) and plain "CODE" (manual paste)
+        // For any non-command message — always try to treat it as a code
         let code: string | null = null;
         if (msg.text.startsWith('/start ')) {
           code = msg.text.slice(7).trim().toUpperCase();
         } else if (!msg.text.startsWith('/')) {
-          const plain = msg.text.trim().toUpperCase();
-          if (pendingBotAuths.has(plain)) code = plain;
+          code = msg.text.trim().toUpperCase();
         }
 
-        if (!code) continue;
+        if (!code) continue; // skip other commands like /start without payload
 
         const entry = pendingBotAuths.get(code);
         if (!entry) {
