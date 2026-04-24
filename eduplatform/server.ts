@@ -861,11 +861,7 @@ async function pollBotUpdates() {
         if (!code) continue; // skip other commands like /start without payload
 
         const entry = pendingBotAuths.get(code);
-        if (!entry) {
-          // Code not found or expired
-          setTimeout(() => botSend(chatId, '❌ Код не найден или истёк. Вернитесь на сайт и запросите новый код.'), 2000);
-          continue;
-        }
+        if (!entry) continue; // wrong or expired code — just ignore silently
 
         entry.telegramUser = {
           id: from.id, first_name: from.first_name, last_name: from.last_name,
@@ -878,15 +874,13 @@ async function pollBotUpdates() {
         // Delay reply by 2s so the bot's welcome message renders first
         setTimeout(() => {
           if (linkedUser) {
-            botSend(chatId, '✅ Код получен! Всё прошло отлично — вернитесь на сайт, вход выполнен автоматически.');
+            botSend(chatId, '✅ Код верный! Всё работает — вернитесь на сайт, вход выполнен автоматически.');
           } else {
             botSend(chatId,
-              '✅ Код получен!\n\n' +
-              '⚠️ Но ваш Telegram ещё не привязан ни к одному аккаунту SCA.\n\n' +
-              'Что нужно сделать:\n' +
-              '1. Зайдите на сайт\n' +
-              '2. Пройдите регистрацию (имя, логин, пароль)\n' +
-              '3. После регистрации привяжите Telegram в профиле\n\n' +
+              '✅ Код верный!\n\n' +
+              'Но вы ещё не зарегистрированы на сайте или Telegram не привязан к аккаунту.\n\n' +
+              '1. Зарегистрируйтесь на сайте (имя, логин, пароль)\n' +
+              '2. После регистрации привяжите Telegram в профиле\n\n' +
               'После этого вход через Telegram будет работать.'
             );
           }
