@@ -823,49 +823,82 @@ function cleanupBotAuths() {
 }
 
 let botPollOffset = 0;
+async function botSend(chatId: number, text: string) {
+  return fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text }),
+  }).catch(() => {});
+}
+
 async function pollBotUpdates() {
   if (!TELEGRAM_BOT_TOKEN) return;
   try {
     cleanupBotAuths();
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${botPollOffset}&timeout=25&allowed_updates=["message"]`;
     const r = await fetch(url, { signal: AbortSignal.timeout(30000) });
-    if (!r.ok) return;
-    const data = await r.json() as any;
-    for (const update of (data.result || [])) {
-      botPollOffset = update.update_id + 1;
-      const msg = update.message;
-      if (!msg?.text) continue;
+    if (!r.ok) {
+      log.warn({ status: r.status }, '[BotAuth] getUpdates non-OK, will retry');
+    } else {
+      const data = await r.json() as any;
+      for (const update of (data.result || [])) {
+        botPollOffset = update.update_id + 1;
+        const msg = update.message;
+        if (!msg?.text) continue;
 
-      // Accept both "/start CODE" (deep-link button) and plain "CODE" (manual paste)
-      let code: string | null = null;
-      if (msg.text.startsWith('/start ')) {
-        code = msg.text.slice(7).trim().toUpperCase();
-      } else {
-        const plain = msg.text.trim().toUpperCase();
-        if (pendingBotAuths.has(plain)) code = plain;
+        const chatId: number = msg.chat.id;
+        const from = msg.from;
+
+        // Accept both "/start CODE" (deep-link button) and plain "CODE" (manual paste)
+        let code: string | null = null;
+        if (msg.text.startsWith('/start ')) {
+          code = msg.text.slice(7).trim().toUpperCase();
+        } else if (!msg.text.startsWith('/')) {
+          const plain = msg.text.trim().toUpperCase();
+          if (pendingBotAuths.has(plain)) code = plain;
+        }
+
+        if (!code) continue;
+
+        const entry = pendingBotAuths.get(code);
+        if (!entry) {
+          // Code not found or expired
+          setTimeout(() => botSend(chatId, '❌ Код не найден или истёк. Вернитесь на сайт и запросите новый код.'), 2000);
+          continue;
+        }
+
+        entry.telegramUser = {
+          id: from.id, first_name: from.first_name, last_name: from.last_name,
+          username: from.username, auth_date: Math.floor(Date.now() / 1000),
+        };
+
+        // Check if this telegram_id is already linked to an account
+        const linkedUser = db.prepare("SELECT id FROM users WHERE telegram_id = ?").get(String(from.id)) as any;
+
+        // Delay reply by 2s so the bot's welcome message renders first
+        setTimeout(() => {
+          if (linkedUser) {
+            botSend(chatId, '✅ Код получен! Всё прошло отлично — вернитесь на сайт, вход выполнен автоматически.');
+          } else {
+            botSend(chatId,
+              '✅ Код получен!\n\n' +
+              '⚠️ Но ваш Telegram ещё не привязан ни к одному аккаунту SCA.\n\n' +
+              'Что нужно сделать:\n' +
+              '1. Зайдите на сайт\n' +
+              '2. Пройдите регистрацию (имя, логин, пароль)\n' +
+              '3. После регистрации привяжите Telegram в профиле\n\n' +
+              'После этого вход через Telegram будет работать.'
+            );
+          }
+        }, 2000);
       }
-      if (!code) continue;
-
-      const entry = pendingBotAuths.get(code);
-      if (!entry) continue;
-      const from = msg.from;
-      entry.telegramUser = {
-        id: from.id, first_name: from.first_name, last_name: from.last_name,
-        username: from.username, auth_date: Math.floor(Date.now() / 1000),
-      };
-      // Delay reply by 2s so the bot's welcome message renders first
-      const chatId = from.id;
-      setTimeout(() => {
-        fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ chat_id: chatId, text: '✅ Код получен! Авторизация прошла успешно — вернитесь на сайт, вход выполнен автоматически.' }),
-        }).catch(() => {});
-      }, 2000);
     }
   } catch (e: any) {
-    if (e?.name !== 'TimeoutError') log.warn({ err: e?.message }, '[BotAuth] poll error');
+    if (e?.name !== 'TimeoutError' && e?.name !== 'AbortError') {
+      log.warn({ err: e?.message }, '[BotAuth] poll error');
+    }
   }
+  // Always reschedule — never stop polling
   setTimeout(pollBotUpdates, 1000);
 }
 if (TELEGRAM_BOT_TOKEN) {
