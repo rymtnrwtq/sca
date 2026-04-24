@@ -11,7 +11,7 @@ import crypto from "crypto";
 import pino from "pino";
 import { z } from "zod";
 import webpush from "web-push";
-import { ensureTributeSchema, mountTributeRoutes, startTributePoller, recomputeUserTier } from "./src/tribute.js";
+import { ensureTributeSchema, mountTributeRoutes, startTributePoller, recomputeUserTier, ALLOWED_SUBSCRIPTIONS } from "./src/tribute.ts";
 
 const log = pino({
   transport: process.env.NODE_ENV !== "production"
@@ -806,6 +806,61 @@ function verifyTelegramHash(data: Record<string, string>): boolean {
   return computed === hash;
 }
 
+// ── Bot-based auth (for users who can't load telegram.org widget) ─────────────
+interface BotAuthEntry {
+  created: number;
+  telegramUser?: Record<string, any>;
+  mode: 'signin' | 'link'; // signin = login, link = link to existing session
+}
+const pendingBotAuths = new Map<string, BotAuthEntry>();
+const BOT_AUTH_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function cleanupBotAuths() {
+  const now = Date.now();
+  for (const [k, v] of pendingBotAuths) {
+    if (now - v.created > BOT_AUTH_TTL_MS) pendingBotAuths.delete(k);
+  }
+}
+
+let botPollOffset = 0;
+async function pollBotUpdates() {
+  if (!TELEGRAM_BOT_TOKEN) return;
+  try {
+    cleanupBotAuths();
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${botPollOffset}&timeout=25&allowed_updates=["message"]`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(30000) });
+    if (!r.ok) return;
+    const data = await r.json() as any;
+    for (const update of (data.result || [])) {
+      botPollOffset = update.update_id + 1;
+      const msg = update.message;
+      if (!msg?.text?.startsWith('/start ')) continue;
+      const code = msg.text.slice(7).trim().toUpperCase();
+      const entry = pendingBotAuths.get(code);
+      if (!entry) continue;
+      const from = msg.from;
+      entry.telegramUser = {
+        id: from.id, first_name: from.first_name, last_name: from.last_name,
+        username: from.username, auth_date: Math.floor(Date.now() / 1000),
+      };
+      // Reply to user in Telegram
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ chat_id: from.id, text: '✅ Авторизация подтверждена! Вернитесь на сайт.' }),
+      }).catch(() => {});
+    }
+  } catch (e: any) {
+    if (e?.name !== 'TimeoutError') log.warn({ err: e?.message }, '[BotAuth] poll error');
+  }
+  setTimeout(pollBotUpdates, 1000);
+}
+if (TELEGRAM_BOT_TOKEN) {
+  // Small delay so server is ready
+  setTimeout(pollBotUpdates, 3000);
+  log.info('[BotAuth] Bot long-polling started');
+}
+
 function parseUserAgent(ua: string): string {
   if (!ua) return 'Неизвестный браузер';
 
@@ -1178,6 +1233,97 @@ async function startServer() {
         return res.status(400).json({ success: false, message: "Логин уже занят" });
       }
       res.status(500).json({ success: false, message: "Внутренняя ошибка сервера" });
+    }
+  });
+
+  // ── Bot-code auth endpoints ───────────────────────────────────────────────────
+
+  // 1. Generate a code — user sends it to the bot as /start CODE
+  app.post("/api/auth/bot-code/start", (req, res) => {
+    cleanupBotAuths();
+    const code = crypto.randomBytes(4).toString('hex').toUpperCase(); // e.g. A3F1C8B2
+    pendingBotAuths.set(code, { created: Date.now(), mode: 'signin' });
+    res.json({ code, bot_username: 'Swimming_Coaches_Association_bot', expires_in: 600 });
+  });
+
+  // 2. Poll status
+  app.get("/api/auth/bot-code/status", (req, res) => {
+    const code = String(req.query.code || '').toUpperCase();
+    const entry = pendingBotAuths.get(code);
+    if (!entry) return res.json({ status: 'expired' });
+    if (Date.now() - entry.created > BOT_AUTH_TTL_MS) {
+      pendingBotAuths.delete(code);
+      return res.json({ status: 'expired' });
+    }
+    res.json({ status: entry.telegramUser ? 'done' : 'pending' });
+  });
+
+  // 3. Complete signin with bot-verified code
+  app.post("/api/auth/bot-code/signin", async (req, res) => {
+    try {
+      const code = String(req.body.code || '').toUpperCase();
+      const entry = pendingBotAuths.get(code);
+      if (!entry || !entry.telegramUser) {
+        return res.status(400).json({ success: false, message: 'Код не подтверждён или истёк' });
+      }
+      if (Date.now() - entry.created > BOT_AUTH_TTL_MS) {
+        pendingBotAuths.delete(code);
+        return res.status(400).json({ success: false, message: 'Код истёк, начните заново' });
+      }
+      pendingBotAuths.delete(code);
+
+      const tgUser = entry.telegramUser;
+      const telegramId = String(tgUser.id);
+
+      let row = db.prepare("SELECT * FROM users WHERE telegram_id = ?").get(telegramId) as any;
+      if (!row) {
+        return res.status(404).json({ success: false, message: 'Этот Telegram не привязан ни к одному аккаунту. Войдите по логину и привяжите Telegram в профиле.' });
+      }
+
+      db.prepare(`UPDATE users SET telegram_username=?, telegram_first_name=?, telegram_last_name=? WHERE id=?`)
+        .run(tgUser.username ?? null, tgUser.first_name ?? null, tgUser.last_name ?? null, row.id);
+      try { recomputeUserTier(db, String(row.id)); } catch {}
+      const fullRow = db.prepare("SELECT id, username, name, email, first_name, last_name, tier, is_admin, subscription_expires_at, telegram_id, telegram_username, telegram_first_name, telegram_last_name, telegram_photo_url FROM users WHERE id = ?").get(row.id) as any;
+      const user = { id: fullRow.id, username: fullRow.username, name: fullRow.name, tier: fullRow.tier, progress: 0, is_admin: fullRow.is_admin };
+      const token = await new SignJWT(user).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("30d").sign(JWT_SECRET);
+      log.info({ username: row.username, telegramId }, '[Auth] BotCode signin success');
+      res.json({ success: true, token, user });
+    } catch (e: any) {
+      log.error(e, '[Auth] BotCode signin error');
+      res.status(500).json({ success: false, message: 'Внутренняя ошибка' });
+    }
+  });
+
+  // 4. Link telegram to existing account via bot-verified code
+  app.post("/api/auth/bot-code/link", authenticate, async (req: any, res) => {
+    try {
+      const code = String(req.body.code || '').toUpperCase();
+      const entry = pendingBotAuths.get(code);
+      if (!entry || !entry.telegramUser) {
+        return res.status(400).json({ success: false, message: 'Код не подтверждён или истёк' });
+      }
+      if (Date.now() - entry.created > BOT_AUTH_TTL_MS) {
+        pendingBotAuths.delete(code);
+        return res.status(400).json({ success: false, message: 'Код истёк, начните заново' });
+      }
+      pendingBotAuths.delete(code);
+
+      const tgUser = entry.telegramUser;
+      const telegramId = String(tgUser.id);
+
+      const existing = db.prepare("SELECT id, username FROM users WHERE telegram_id = ?").get(telegramId) as any;
+      if (existing && existing.id !== req.user.id) {
+        return res.status(400).json({ success: false, message: 'Этот Telegram уже привязан к другому аккаунту' });
+      }
+
+      db.prepare(`UPDATE users SET telegram_id=?, telegram_username=?, telegram_first_name=?, telegram_last_name=?, telegram_auth_date=? WHERE id=?`)
+        .run(telegramId, tgUser.username ?? null, tgUser.first_name ?? null, tgUser.last_name ?? null, Math.floor(Date.now() / 1000), req.user.id);
+      try { recomputeUserTier(db, req.user.id); } catch {}
+      log.info({ userId: req.user.id, telegramId }, '[Auth] BotCode link success');
+      res.json({ success: true });
+    } catch (e: any) {
+      log.error(e, '[Auth] BotCode link error');
+      res.status(500).json({ success: false, message: 'Внутренняя ошибка' });
     }
   });
 
@@ -1938,6 +2084,7 @@ async function startServer() {
       const tier = req.query.tier as string;
       let query = `
         SELECT u.id, u.username, u.name, u.tier, u.is_admin, u.subscription_expires_at, u.notes, u.created_at,
+          u.telegram_id, u.telegram_username, u.telegram_first_name, u.telegram_last_name, u.telegram_photo_url,
           (SELECT COUNT(*) FROM watch_history WHERE user_id = u.id) as watch_count,
           (SELECT COUNT(*) FROM watch_later WHERE user_id = u.id) as bookmark_count,
           NULL as subscription_started_at,
@@ -1969,6 +2116,7 @@ async function startServer() {
     try {
       const user = db.prepare(`
         SELECT u.id, u.username, u.name, u.tier, u.is_admin, u.subscription_expires_at, u.notes, u.created_at,
+          u.telegram_id, u.telegram_username, u.telegram_first_name, u.telegram_last_name, u.telegram_photo_url,
           (SELECT COUNT(*) FROM watch_history WHERE user_id = u.id) as watch_count,
           (SELECT COUNT(*) FROM watch_later WHERE user_id = u.id) as bookmark_count,
           NULL as subscription_started_at,

@@ -1,13 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Eye, EyeOff, Send, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useAuth, TelegramUser } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
-
-declare global {
-  interface Window { onTelegramAuth?: (user: TelegramUser) => void; }
-}
+import { TelegramAuth } from '../components/TelegramAuth';
 
 const TG_BLUE = '#229ED9';
 
@@ -38,30 +35,6 @@ const Input = ({
     {error && <p className="text-red-400 text-xs px-1">{error}</p>}
   </div>
 );
-
-// ─── Telegram Widget ──────────────────────────────────────────────────────────
-
-const TelegramWidget = ({ onAuth }: { onAuth: (u: TelegramUser) => void }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    window.onTelegramAuth = onAuth;
-    const c = ref.current;
-    if (!c) return;
-    c.innerHTML = '';
-    const s = document.createElement('script');
-    s.src = 'https://telegram.org/js/telegram-widget.js?23';
-    s.async = true;
-    s.setAttribute('data-telegram-login', 'kmevermveokBot');
-    s.setAttribute('data-size', 'large');
-    s.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    s.setAttribute('data-request-access', 'write');
-    s.setAttribute('data-userpic', 'false');
-    s.setAttribute('data-lang', 'ru');
-    c.appendChild(s);
-    return () => { delete window.onTelegramAuth; };
-  }, [onAuth]);
-  return <div ref={ref} className="flex justify-center [&>iframe]:rounded-2xl" />;
-};
 
 // ─── Password field with show/hide ───────────────────────────────────────────
 
@@ -144,7 +117,8 @@ export const Auth = () => {
 
   // ── Login by Telegram ──────────────────────────────────────────────────────
 
-  const handleLoginTelegram = async (tgUser: TelegramUser) => {
+  const handleLoginTelegram = async (tgUser?: TelegramUser) => {
+    if (!tgUser) return; // bot-code signin handles redirect itself
     setLoginError('');
     setLoginLoading(true);
     const err = await telegramSignin(tgUser);
@@ -197,7 +171,14 @@ export const Auth = () => {
 
   // ── Link Telegram after register ───────────────────────────────────────────
 
-  const handleLinkTelegram = async (tgUser: TelegramUser) => {
+  const handleLinkTelegram = async (tgUser?: TelegramUser) => {
+    // tgUser is undefined when bot-code link completed server-side
+    if (!tgUser) {
+      setLinkDone(true);
+      await refreshUser();
+      setTimeout(() => navigate('/'), 1200);
+      return;
+    }
     setLinkError('');
     setLinkLoading(true);
     const err = await linkTelegram(tgUser);
@@ -230,6 +211,10 @@ export const Auth = () => {
           {/* ── STEP: Login ─────────────────────────────────────────────────── */}
           {step === 'login' && (
             <motion.div key="login" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <p className="text-zinc-400 text-xs text-center mb-6 px-4">
+                Если вы еще не авторизовались на сайте, надо сначала пройти регистрацию
+              </p>
+
               {/* Mode tabs */}
               <div className="flex bg-white/5 rounded-2xl p-1 mb-6">
                 <button
@@ -267,12 +252,19 @@ export const Auth = () => {
                   <motion.div key="tg-form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     className="space-y-3">
                     <p className="text-zinc-500 text-xs text-center">
-                      Telegram должен быть привязан к вашему аккаунту SCA
+                      Telegram должен быть привязан к вашему аккаунту SCA. 
+                      Если он не привязан, надо сначала пройти регистрацию.
                     </p>
                     {loginLoading
                       ? <p className="text-zinc-400 text-sm text-center py-4">Вход…</p>
-                      : <TelegramWidget onAuth={handleLoginTelegram} />}
-                    {loginError && <p className="text-red-400 text-sm text-center">{loginError}</p>}
+                      : <TelegramAuth onAuth={handleLoginTelegram} mode="signin" />}
+                    {loginError && (
+                      <p className="text-red-400 text-sm text-center">
+                        {loginError.toLowerCase().includes('not linked') || loginError.toLowerCase().includes('не найден') 
+                          ? "Этот Telegram не привязан ни к одному аккаунту" 
+                          : loginError}
+                      </p>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -363,7 +355,7 @@ export const Auth = () => {
 
                   {linkLoading
                     ? <p className="text-zinc-400 text-sm text-center py-2">Обработка…</p>
-                    : <TelegramWidget onAuth={handleLinkTelegram} />}
+                    : <TelegramAuth onAuth={handleLinkTelegram} mode="link" />}
 
                   {linkError && <p className="text-red-400 text-sm text-center">{linkError}</p>}
 

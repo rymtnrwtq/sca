@@ -1,47 +1,30 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Send, Link2, Unlink } from 'lucide-react';
-import { useAuth, TelegramUser } from '../contexts/AuthContext';
-
-declare global {
-  interface Window {
-    onTelegramAuth?: (user: TelegramUser) => void;
-  }
-}
+import { useAuth } from '../contexts/AuthContext';
+import { TelegramAuth } from './TelegramAuth';
 
 export const TelegramLinkCard = () => {
   const { user, linkTelegram, unlinkTelegram, refreshUser } = useAuth();
-  const containerRef = useRef<HTMLDivElement>(null);
+  const token = localStorage.getItem('auth_token') || undefined;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const linked = !!user?.telegram_id;
 
-  useEffect(() => {
-    if (linked) return; // Don't render widget if already linked
-    window.onTelegramAuth = async (tgUser: TelegramUser) => {
-      setError(null); setSuccess(null); setBusy(true);
-      const err = await linkTelegram(tgUser);
-      setBusy(false);
-      if (err) setError(err);
-      else { setSuccess('Telegram привязан. Доступ к платному контенту обновлён.'); await refreshUser(); }
-    };
-
-    const c = containerRef.current;
-    if (!c) return;
-    c.innerHTML = '';
-    const s = document.createElement('script');
-    s.src = 'https://telegram.org/js/telegram-widget.js?23';
-    s.async = true;
-    s.setAttribute('data-telegram-login', 'kmevermveokBot');
-    s.setAttribute('data-size', 'large');
-    s.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    s.setAttribute('data-request-access', 'write');
-    s.setAttribute('data-userpic', 'false');
-    s.setAttribute('data-lang', 'ru');
-    c.appendChild(s);
-    return () => { delete window.onTelegramAuth; };
-  }, [linked, linkTelegram, refreshUser]);
+  const handleAuth = async (tgUser?: any) => {
+    if (!tgUser) {
+      // Bot-code link completed server-side — just refresh
+      await refreshUser();
+      setSuccess('Telegram привязан. Доступ к платному контенту обновлён.');
+      return;
+    }
+    setError(null); setSuccess(null); setBusy(true);
+    const err = await linkTelegram(tgUser);
+    setBusy(false);
+    if (err) setError(err);
+    else { setSuccess('Telegram привязан. Доступ к платному контенту обновлён.'); await refreshUser(); }
+  };
 
   const handleUnlink = async () => {
     if (!confirm('Отвязать Telegram? Доступ к платному контенту может пропасть.')) return;
@@ -86,13 +69,14 @@ export const TelegramLinkCard = () => {
             <Unlink size={16} /> Отвязать Telegram
           </button>
         </div>
+      ) : busy ? (
+        <p className="text-zinc-500 text-xs text-center py-2">Обработка…</p>
       ) : (
-        <div ref={containerRef} className="flex justify-center [&>iframe]:rounded-2xl" />
+        <TelegramAuth onAuth={handleAuth} mode="link" authToken={token} />
       )}
 
       {error && <p className="text-red-400 text-sm text-center mt-3">{error}</p>}
       {success && <p className="text-green-400 text-sm text-center mt-3">{success}</p>}
-      {busy && <p className="text-zinc-500 text-xs text-center mt-2">Обработка…</p>}
     </div>
   );
 };
