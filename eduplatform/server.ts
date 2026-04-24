@@ -859,7 +859,7 @@ async function pollBotUpdates() {
         fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ chat_id: chatId, text: '✅ Авторизация подтверждена! Вернитесь на сайт.' }),
+          body: JSON.stringify({ chat_id: chatId, text: '✅ Код получен! Авторизация прошла успешно — вернитесь на сайт, вход выполнен автоматически.' }),
         }).catch(() => {});
       }, 2000);
     }
