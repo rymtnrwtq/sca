@@ -824,9 +824,11 @@ function cleanupBotAuths() {
 
 let botPollOffset = 0;
 
+const BOT_SEND_URL = `https://tg-oauth-proxy.borozdov.workers.dev/botapi/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
 async function botSend(chatId: number, text: string) {
   try {
-    const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const r = await fetch(BOT_SEND_URL, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text }),
