@@ -63,12 +63,7 @@ const BotCodeWaiting = ({
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
       {/* Instructions */}
-      <div className="text-center">
-        <p className="text-zinc-300 text-xs font-medium">Отправьте этот код боту в Telegram:</p>
-        <p className="text-zinc-500 text-xs mt-0.5">
-          <span style={{ color: TG_BLUE }}>@{botUsername}</span>
-        </p>
-      </div>
+      <p className="text-zinc-300 text-xs font-medium text-center">Отправьте этот код в Telegram-бот:</p>
 
       {/* Code block with copy button */}
       <div
@@ -92,10 +87,10 @@ const BotCodeWaiting = ({
         href={`https://t.me/${botUsername}?start=${code}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-opacity hover:opacity-85 active:scale-[0.98]"
+        className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-opacity hover:opacity-85 active:scale-[0.98]"
         style={{ backgroundColor: TG_BLUE, color: '#fff' }}
       >
-        <Send size={15} /> Открыть @{botUsername}
+        <Send size={14} /> Открыть бота и отправить
       </a>
 
       {/* Status */}
@@ -273,23 +268,21 @@ export const TelegramAuth = ({
 
   return (
     <div className="space-y-3">
-      {/* Widget — hide when bot-code mode is active */}
-      {!botMode && (
-        <div>
-          <div
-            ref={widgetRef}
-            className={cn(
-              "flex justify-center [&>iframe]:rounded-2xl transition-opacity",
-              widgetTimedOut && "opacity-30 pointer-events-none",
-            )}
-          />
-          {widgetTimedOut && (
-            <p className="text-zinc-600 text-xs text-center mt-1.5">
-              Кнопка Telegram не загрузилась (возможно, заблокировано)
-            </p>
+      {/* Widget — CSS-hidden when bot-code mode is active (keep in DOM so iframe survives) */}
+      <div className={botMode ? 'hidden' : undefined}>
+        <div
+          ref={widgetRef}
+          className={cn(
+            "flex justify-center [&>iframe]:rounded-2xl transition-opacity",
+            widgetTimedOut && "opacity-30 pointer-events-none",
           )}
-        </div>
-      )}
+        />
+        {widgetTimedOut && (
+          <p className="text-zinc-600 text-xs text-center mt-1.5">
+            Кнопка Telegram не загрузилась (возможно, заблокировано)
+          </p>
+        )}
+      </div>
 
       <BotCodePanel
         onAuth={() => onAuth(undefined)}
