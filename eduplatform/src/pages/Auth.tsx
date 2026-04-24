@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Eye, EyeOff, Send, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Send, ArrowLeft, CheckCircle2, ChevronDown } from 'lucide-react';
 import { useAuth, TelegramUser } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
 import { TelegramAuth } from '../components/TelegramAuth';
@@ -67,7 +67,6 @@ const PwdHints = ({ pwd }: { pwd: string }) => (
 // ─── Main component ───────────────────────────────────────────────────────────
 
 type Step = 'login' | 'register' | 'link-telegram';
-type LoginMode = 'password' | 'telegram';
 
 export const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -77,7 +76,7 @@ export const Auth = () => {
   const [step, setStep] = useState<Step>(
     searchParams.get('tab') === 'register' ? 'register' : 'login'
   );
-  const [loginMode, setLoginMode] = useState<LoginMode>('password');
+  const [showTelegramLogin, setShowTelegramLogin] = useState(false);
 
   // Login fields
   const [loginUsername, setLoginUsername] = useState('');
@@ -211,65 +210,68 @@ export const Auth = () => {
           {/* ── STEP: Login ─────────────────────────────────────────────────── */}
           {step === 'login' && (
             <motion.div key="login" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <p className="text-zinc-400 text-xs text-center mb-6 px-4">
-                Если вы еще не авторизовались на сайте, надо сначала пройти регистрацию
-              </p>
 
-              {/* Mode tabs */}
-              <div className="flex bg-white/5 rounded-2xl p-1 mb-6">
-                <button
-                  onClick={() => { setLoginMode('password'); setLoginError(''); }}
-                  className={cn("flex-1 py-3 rounded-xl text-sm font-bold transition-all",
-                    loginMode === 'password' ? "bg-orange-500 text-white shadow" : "text-zinc-500 hover:text-white")}
-                >
-                  Логин и пароль
+              {/* Primary: password login */}
+              <form onSubmit={handleLoginPassword} className="space-y-3">
+                <Input placeholder="Логин" value={loginUsername} onChange={v => { setLoginUsername(v); setLoginError(''); }}
+                  autoComplete="username" autoFocus />
+                <PwdInput placeholder="Пароль" value={loginPassword} onChange={v => { setLoginPassword(v); setLoginError(''); }}
+                  autoComplete="current-password" />
+                {loginError && <p className="text-red-400 text-sm text-center">{loginError}</p>}
+                <button type="submit" disabled={loginLoading}
+                  className="w-full py-4 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-2xl font-bold text-lg transition-all shadow-lg shadow-orange-500/20">
+                  {loginLoading ? '...' : 'Войти'}
                 </button>
+              </form>
+
+              {/* Secondary: Telegram login — collapsible, for existing users with linked TG */}
+              <div className="mt-4">
                 <button
-                  onClick={() => { setLoginMode('telegram'); setLoginError(''); }}
-                  className={cn("flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-1.5",
-                    loginMode === 'telegram' ? "text-white shadow" : "text-zinc-500 hover:text-white")}
-                  style={loginMode === 'telegram' ? { backgroundColor: TG_BLUE } : undefined}
+                  onClick={() => { setShowTelegramLogin(v => !v); setLoginError(''); }}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/8 hover:border-white/20 transition-all text-sm"
                 >
-                  <Send size={14} /> Telegram
+                  <span className="flex items-center gap-2 font-medium" style={{ color: TG_BLUE }}>
+                    <Send size={15} /> Войти через Telegram
+                  </span>
+                  <ChevronDown
+                    size={16}
+                    className={cn("text-zinc-500 transition-transform duration-200", showTelegramLogin && "rotate-180")}
+                  />
                 </button>
+
+                <AnimatePresence>
+                  {showTelegramLogin && (
+                    <motion.div
+                      key="tg-panel"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-3 space-y-3">
+                        <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-3 py-2.5">
+                          <p className="text-amber-300/80 text-xs leading-relaxed">
+                            <span className="font-bold">Только для существующих аккаунтов</span> с привязанным Telegram.
+                            Если ещё не регистрировались — сначала создайте аккаунт ниже.
+                          </p>
+                        </div>
+                        {loginLoading
+                          ? <p className="text-zinc-400 text-sm text-center py-3">Вход…</p>
+                          : <TelegramAuth onAuth={handleLoginTelegram} mode="signin" />}
+                        {loginError && (
+                          <p className="text-red-400 text-sm text-center">
+                            {loginError.toLowerCase().includes('not linked') || loginError.toLowerCase().includes('не найден')
+                              ? 'Этот Telegram не привязан ни к одному аккаунту'
+                              : loginError}
+                          </p>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              <AnimatePresence mode="wait">
-                {loginMode === 'password' ? (
-                  <motion.form key="pwd-form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    onSubmit={handleLoginPassword} className="space-y-3">
-                    <Input placeholder="Логин" value={loginUsername} onChange={v => { setLoginUsername(v); setLoginError(''); }}
-                      autoComplete="username" autoFocus />
-                    <PwdInput placeholder="Пароль" value={loginPassword} onChange={v => { setLoginPassword(v); setLoginError(''); }}
-                      autoComplete="current-password" />
-                    {loginError && <p className="text-red-400 text-sm text-center">{loginError}</p>}
-                    <button type="submit" disabled={loginLoading}
-                      className="w-full py-4 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-2xl font-bold text-lg transition-all shadow-lg shadow-orange-500/20 mt-1">
-                      {loginLoading ? '...' : 'Войти'}
-                    </button>
-                  </motion.form>
-                ) : (
-                  <motion.div key="tg-form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="space-y-3">
-                    <p className="text-zinc-500 text-xs text-center">
-                      Telegram должен быть привязан к вашему аккаунту SCA. 
-                      Если он не привязан, надо сначала пройти регистрацию.
-                    </p>
-                    {loginLoading
-                      ? <p className="text-zinc-400 text-sm text-center py-4">Вход…</p>
-                      : <TelegramAuth onAuth={handleLoginTelegram} mode="signin" />}
-                    {loginError && (
-                      <p className="text-red-400 text-sm text-center">
-                        {loginError.toLowerCase().includes('not linked') || loginError.toLowerCase().includes('не найден') 
-                          ? "Этот Telegram не привязан ни к одному аккаунту" 
-                          : loginError}
-                      </p>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <p className="text-zinc-600 text-sm text-center mt-6">
+              <p className="text-zinc-600 text-sm text-center mt-5">
                 Нет аккаунта?{' '}
                 <button onClick={() => { setStep('register'); setLoginError(''); }}
                   className="text-orange-400 hover:text-orange-300 font-bold transition-colors">
