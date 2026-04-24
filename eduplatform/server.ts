@@ -853,7 +853,7 @@ async function pollBotUpdates() {
         id: from.id, first_name: from.first_name, last_name: from.last_name,
         username: from.username, auth_date: Math.floor(Date.now() / 1000),
       };
-      // Delay reply by 1s so the bot's welcome message renders first
+      // Delay reply by 2s so the bot's welcome message renders first
       const chatId = from.id;
       setTimeout(() => {
         fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -861,7 +861,7 @@ async function pollBotUpdates() {
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ chat_id: chatId, text: '✅ Авторизация подтверждена! Вернитесь на сайт.' }),
         }).catch(() => {});
-      }, 1000);
+      }, 2000);
     }
   } catch (e: any) {
     if (e?.name !== 'TimeoutError') log.warn({ err: e?.message }, '[BotAuth] poll error');

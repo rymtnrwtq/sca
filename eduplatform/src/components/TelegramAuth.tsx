@@ -46,7 +46,11 @@ const TelegramWidget = ({ onAuth }: { onAuth: (u: TelegramUser) => void }) => {
 
 // ── Bot code waiting panel ────────────────────────────────────────────────────
 
-const BotCodeWaiting = ({ code, status, botUsername }: { code: string; status: string; botUsername: string }) => {
+const BotCodeWaiting = ({
+  code, status, botUsername, onCancel,
+}: {
+  code: string; status: string; botUsername: string; onCancel?: () => void;
+}) => {
   const [copied, setCopied] = useState(false);
 
   const copy = () => {
@@ -57,15 +61,21 @@ const BotCodeWaiting = ({ code, status, botUsername }: { code: string; status: s
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3 text-center">
-      <p className="text-zinc-400 text-xs">Отправьте этот код боту в Telegram:</p>
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
+      {/* Instructions */}
+      <div className="text-center">
+        <p className="text-zinc-300 text-xs font-medium">Отправьте этот код боту в Telegram:</p>
+        <p className="text-zinc-500 text-xs mt-0.5">
+          <span style={{ color: TG_BLUE }}>@{botUsername}</span>
+        </p>
+      </div>
 
       {/* Code block with copy button */}
       <div
-        className="relative rounded-xl px-4 py-3 flex items-center justify-center gap-3"
+        className="relative rounded-xl px-4 py-3 flex items-center justify-center"
         style={{ backgroundColor: `${TG_BLUE}22`, border: `1px solid ${TG_BLUE}44` }}
       >
-        <span className="text-white font-mono text-xl font-bold tracking-widest select-all">{code}</span>
+        <span className="text-white font-mono text-2xl font-bold tracking-[0.2em] select-all">{code}</span>
         <button
           onClick={copy}
           title="Скопировать код"
@@ -75,9 +85,9 @@ const BotCodeWaiting = ({ code, status, botUsername }: { code: string; status: s
           {copied ? <Check size={16} /> : <Copy size={16} />}
         </button>
       </div>
+      {copied && <p className="text-green-400 text-xs text-center -mt-1">Скопировано!</p>}
 
-      {copied && <p className="text-green-400 text-xs">Скопировано!</p>}
-
+      {/* Open bot button */}
       <a
         href={`https://t.me/${botUsername}?start=${code}`}
         target="_blank"
@@ -85,17 +95,28 @@ const BotCodeWaiting = ({ code, status, botUsername }: { code: string; status: s
         className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-opacity hover:opacity-85 active:scale-[0.98]"
         style={{ backgroundColor: TG_BLUE, color: '#fff' }}
       >
-        <Send size={15} /> Открыть бота и отправить код
+        <Send size={15} /> Открыть @{botUsername}
       </a>
 
+      {/* Status */}
       {status === 'done' ? (
         <p className="text-green-400 text-xs flex items-center justify-center gap-1">
           <CheckCircle2 size={14} /> Подтверждено, входим…
         </p>
       ) : (
         <p className="text-zinc-600 text-xs flex items-center justify-center gap-1.5">
-          <Loader2 size={12} className="animate-spin" /> Ожидаем подтверждения…
+          <Loader2 size={12} className="animate-spin" /> Ожидаем подтверждения от бота…
         </p>
+      )}
+
+      {/* Back to widget */}
+      {onCancel && (
+        <button
+          onClick={onCancel}
+          className="w-full text-zinc-600 hover:text-zinc-400 text-xs transition-colors pt-1"
+        >
+          ← Вернуться к кнопке Telegram
+        </button>
       )}
     </div>
   );
@@ -109,10 +130,14 @@ const BotCodePanel = ({
   onAuth,
   mode,
   authToken,
+  onActivate,
+  onReset,
 }: {
   onAuth: () => void;
   mode: 'signin' | 'link';
   authToken?: string;
+  onActivate?: () => void;
+  onReset?: () => void;
 }) => {
   const [status, setStatus] = useState<BotStatus>('idle');
   const [code, setCode] = useState('');
@@ -152,6 +177,7 @@ const BotCodePanel = ({
   const start = async () => {
     setError('');
     setStatus('waiting');
+    onActivate?.();
     try {
       const r = await fetch('/api/auth/bot-code/start', { method: 'POST' });
       const data = await r.json();
@@ -181,7 +207,14 @@ const BotCodePanel = ({
   }
 
   if (status === 'waiting' || status === 'done') {
-    return <BotCodeWaiting code={code} status={status} botUsername={BOT_USERNAME} />;
+    return (
+      <BotCodeWaiting
+        code={code}
+        status={status}
+        botUsername={BOT_USERNAME}
+        onCancel={onReset ? () => { stopPolling(); setStatus('idle'); setCode(''); onReset(); } : undefined}
+      />
+    );
   }
 
   return (
@@ -210,6 +243,8 @@ export const TelegramAuth = ({
 }) => {
   const widgetRef = useRef<HTMLDivElement>(null);
   const [widgetTimedOut, setWidgetTimedOut] = useState(false);
+  // When user switches to bot-code mode, hide the widget
+  const [botMode, setBotMode] = useState(false);
 
   useEffect(() => {
     window.onTelegramAuth = onAuth as (u: TelegramUser) => void;
@@ -238,22 +273,30 @@ export const TelegramAuth = ({
 
   return (
     <div className="space-y-3">
-      <div
-        ref={widgetRef}
-        className={cn(
-          "flex justify-center [&>iframe]:rounded-2xl transition-opacity",
-          widgetTimedOut && "opacity-30 pointer-events-none",
-        )}
-      />
-      {widgetTimedOut && (
-        <p className="text-zinc-600 text-xs text-center">
-          Кнопка Telegram не загрузилась (возможно, заблокировано в вашей стране)
-        </p>
+      {/* Widget — hide when bot-code mode is active */}
+      {!botMode && (
+        <div>
+          <div
+            ref={widgetRef}
+            className={cn(
+              "flex justify-center [&>iframe]:rounded-2xl transition-opacity",
+              widgetTimedOut && "opacity-30 pointer-events-none",
+            )}
+          />
+          {widgetTimedOut && (
+            <p className="text-zinc-600 text-xs text-center mt-1.5">
+              Кнопка Telegram не загрузилась (возможно, заблокировано)
+            </p>
+          )}
+        </div>
       )}
+
       <BotCodePanel
         onAuth={() => onAuth(undefined)}
         mode={mode}
         authToken={authToken}
+        onActivate={() => setBotMode(true)}
+        onReset={() => setBotMode(false)}
       />
     </div>
   );

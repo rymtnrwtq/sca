@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Eye, EyeOff, Send, ArrowLeft, CheckCircle2, ChevronDown } from 'lucide-react';
@@ -71,7 +71,12 @@ type Step = 'login' | 'register' | 'link-telegram';
 export const Auth = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login, register, telegramSignin, linkTelegram, refreshUser } = useAuth();
+  const { login, register, telegramSignin, linkTelegram, refreshUser, user, isLoading } = useAuth();
+
+  // Redirect already-logged-in users to home
+  useEffect(() => {
+    if (!isLoading && user) navigate('/', { replace: true });
+  }, [user, isLoading, navigate]);
 
   const [step, setStep] = useState<Step>(
     searchParams.get('tab') === 'register' ? 'register' : 'login'
