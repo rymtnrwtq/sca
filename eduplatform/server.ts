@@ -824,9 +824,12 @@ function cleanupBotAuths() {
 
 let botPollOffset = 0;
 
+// Route sendMessage through Cloudflare Worker (server is in Russia, direct api.telegram.org blocked)
+const BOT_SEND_URL = `https://tg-oauth-proxy.borozdov.workers.dev/botapi/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
 async function botSend(chatId: number, text: string) {
   try {
-    const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const r = await fetch(BOT_SEND_URL, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text }),
@@ -834,6 +837,8 @@ async function botSend(chatId: number, text: string) {
     if (!r.ok) {
       const body = await r.text();
       log.warn({ chatId, status: r.status, body }, '[BotAuth] sendMessage failed');
+    } else {
+      log.info({ chatId }, '[BotAuth] sendMessage OK');
     }
   } catch (e: any) {
     log.warn({ chatId, err: e?.message }, '[BotAuth] sendMessage error');
