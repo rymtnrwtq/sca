@@ -169,10 +169,13 @@ const BotCodePanel = ({
     return (
       <button
         onClick={start}
-        className="w-full py-2.5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-zinc-400 hover:text-white text-xs text-center transition-all flex items-center justify-center gap-2 cursor-pointer"
+        className="mx-auto flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-zinc-400 hover:text-white text-xs transition-all cursor-pointer"
       >
-        <Send size={13} style={{ color: TG_BLUE }} />
-        Кнопка не загружается? Войти через код из бота
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+          <circle cx="12" cy="12" r="12" fill={TG_BLUE} />
+          <path d="M17.5 7L10.2 13.5 7 11l-3 1.5 5.5 3.5 8-7.5L17.5 7z" fill="white" />
+        </svg>
+        <span>Кнопка не загружается? Войти через код из бота</span>
       </button>
     );
   }

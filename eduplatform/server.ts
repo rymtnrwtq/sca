@@ -834,8 +834,18 @@ async function pollBotUpdates() {
     for (const update of (data.result || [])) {
       botPollOffset = update.update_id + 1;
       const msg = update.message;
-      if (!msg?.text?.startsWith('/start ')) continue;
-      const code = msg.text.slice(7).trim().toUpperCase();
+      if (!msg?.text) continue;
+
+      // Accept both "/start CODE" (deep-link button) and plain "CODE" (manual paste)
+      let code: string | null = null;
+      if (msg.text.startsWith('/start ')) {
+        code = msg.text.slice(7).trim().toUpperCase();
+      } else {
+        const plain = msg.text.trim().toUpperCase();
+        if (pendingBotAuths.has(plain)) code = plain;
+      }
+      if (!code) continue;
+
       const entry = pendingBotAuths.get(code);
       if (!entry) continue;
       const from = msg.from;
@@ -843,12 +853,15 @@ async function pollBotUpdates() {
         id: from.id, first_name: from.first_name, last_name: from.last_name,
         username: from.username, auth_date: Math.floor(Date.now() / 1000),
       };
-      // Reply to user in Telegram
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ chat_id: from.id, text: '✅ Авторизация подтверждена! Вернитесь на сайт.' }),
-      }).catch(() => {});
+      // Delay reply by 1s so the bot's welcome message renders first
+      const chatId = from.id;
+      setTimeout(() => {
+        fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, text: '✅ Авторизация подтверждена! Вернитесь на сайт.' }),
+        }).catch(() => {});
+      }, 1000);
     }
   } catch (e: any) {
     if (e?.name !== 'TimeoutError') log.warn({ err: e?.message }, '[BotAuth] poll error');

@@ -196,7 +196,7 @@ export const Auth = () => {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="min-h-[80vh] flex flex-col items-center justify-center py-8 px-2 sm:px-6"
+      className="min-h-screen flex flex-col items-center justify-start py-8 px-2 sm:px-6 pb-28"
     >
       <div className={card}>
         {/* Header */}
@@ -249,11 +249,17 @@ export const Auth = () => {
                       className="overflow-hidden"
                     >
                       <div className="pt-3 space-y-3">
-                        <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-3 py-2.5">
+                        <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-3 py-3 flex flex-col gap-2">
                           <p className="text-amber-300/80 text-xs leading-relaxed">
                             <span className="font-bold">Только для существующих аккаунтов</span> с привязанным Telegram.
-                            Если ещё не регистрировались — сначала создайте аккаунт ниже.
+                            Ещё не регистрировались?
                           </p>
+                          <button
+                            onClick={() => { setStep('register'); setLoginError(''); setShowTelegramLogin(false); }}
+                            className="self-start px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-colors"
+                          >
+                            Создать аккаунт →
+                          </button>
                         </div>
                         {loginLoading
                           ? <p className="text-zinc-400 text-sm text-center py-3">Вход…</p>
