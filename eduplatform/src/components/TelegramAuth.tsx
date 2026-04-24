@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Send, RefreshCw, CheckCircle2, Loader2 } from 'lucide-react';
+import { Send, RefreshCw, CheckCircle2, Loader2, Copy, Check } from 'lucide-react';
 import { TelegramUser } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
 
@@ -42,6 +42,63 @@ const TelegramWidget = ({ onAuth }: { onAuth: (u: TelegramUser) => void }) => {
   }, [onAuth]);
 
   return { ref, loaded, timedOut };
+};
+
+// ── Bot code waiting panel ────────────────────────────────────────────────────
+
+const BotCodeWaiting = ({ code, status, botUsername }: { code: string; status: string; botUsername: string }) => {
+  const [copied, setCopied] = useState(false);
+
+  const copy = () => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3 text-center">
+      <p className="text-zinc-400 text-xs">Отправьте этот код боту в Telegram:</p>
+
+      {/* Code block with copy button */}
+      <div
+        className="relative rounded-xl px-4 py-3 flex items-center justify-center gap-3"
+        style={{ backgroundColor: `${TG_BLUE}22`, border: `1px solid ${TG_BLUE}44` }}
+      >
+        <span className="text-white font-mono text-xl font-bold tracking-widest select-all">{code}</span>
+        <button
+          onClick={copy}
+          title="Скопировать код"
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors hover:bg-white/10"
+          style={{ color: copied ? '#4ade80' : TG_BLUE }}
+        >
+          {copied ? <Check size={16} /> : <Copy size={16} />}
+        </button>
+      </div>
+
+      {copied && <p className="text-green-400 text-xs">Скопировано!</p>}
+
+      <a
+        href={`https://t.me/${botUsername}?start=${code}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-opacity hover:opacity-85 active:scale-[0.98]"
+        style={{ backgroundColor: TG_BLUE, color: '#fff' }}
+      >
+        <Send size={15} /> Открыть бота и отправить код
+      </a>
+
+      {status === 'done' ? (
+        <p className="text-green-400 text-xs flex items-center justify-center gap-1">
+          <CheckCircle2 size={14} /> Подтверждено, входим…
+        </p>
+      ) : (
+        <p className="text-zinc-600 text-xs flex items-center justify-center gap-1.5">
+          <Loader2 size={12} className="animate-spin" /> Ожидаем подтверждения…
+        </p>
+      )}
+    </div>
+  );
 };
 
 // ── Bot-code fallback ─────────────────────────────────────────────────────────
@@ -112,51 +169,16 @@ const BotCodePanel = ({
     return (
       <button
         onClick={start}
-        className="w-full py-3 text-zinc-500 hover:text-zinc-300 text-xs text-center transition-colors flex items-center justify-center gap-1.5"
+        className="w-full py-2.5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-zinc-400 hover:text-white text-xs text-center transition-all flex items-center justify-center gap-2 cursor-pointer"
       >
-        <Send size={12} style={{ color: TG_BLUE }} />
+        <Send size={13} style={{ color: TG_BLUE }} />
         Кнопка не загружается? Войти через код из бота
       </button>
     );
   }
 
   if (status === 'waiting' || status === 'done') {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3 text-center">
-        <p className="text-zinc-400 text-xs">Отправьте этот код боту в Telegram:</p>
-        <a
-          href={`https://t.me/${BOT_USERNAME}?start=${code}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block"
-        >
-          <div
-            className="rounded-xl px-4 py-3 text-white font-mono text-xl font-bold tracking-widest"
-            style={{ backgroundColor: `${TG_BLUE}22`, border: `1px solid ${TG_BLUE}44` }}
-          >
-            {code}
-          </div>
-        </a>
-        <a
-          href={`https://t.me/${BOT_USERNAME}?start=${code}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm font-bold rounded-xl px-4 py-2.5 transition-opacity hover:opacity-80"
-          style={{ backgroundColor: TG_BLUE, color: '#fff' }}
-        >
-          <Send size={14} /> Открыть бота и отправить код
-        </a>
-        {status === 'done' ? (
-          <p className="text-green-400 text-xs flex items-center justify-center gap-1">
-            <CheckCircle2 size={14} /> Подтверждено, входим…
-          </p>
-        ) : (
-          <p className="text-zinc-600 text-xs flex items-center justify-center gap-1.5">
-            <Loader2 size={12} className="animate-spin" /> Ожидаем подтверждения…
-          </p>
-        )}
-      </div>
-    );
+    return <BotCodeWaiting code={code} status={status} botUsername={BOT_USERNAME} />;
   }
 
   return (
