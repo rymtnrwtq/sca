@@ -824,7 +824,8 @@ function cleanupBotAuths() {
 
 let botPollOffset = 0;
 
-const BOT_SEND_URL = `https://tg-oauth-proxy.borozdov.workers.dev/botapi/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+// Vienna server proxy (85.192.42.103) → api.telegram.org
+const BOT_SEND_URL = `http://85.192.42.103:8088/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
 async function botSend(chatId: number, text: string) {
   try {
