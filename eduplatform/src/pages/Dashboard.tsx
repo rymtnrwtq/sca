@@ -116,19 +116,38 @@ export const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    fetch('/api/latest-broadcast-video')
-      .then(r => {
-        if (!r.ok || !r.headers.get('content-type')?.includes('application/json')) return null;
-        return r.json();
-      })
-      .then(d => {
-        const video: Lesson | undefined = d?.video;
-        if (video) {
-          setLastBroadcast(video);
-          setLastBroadcastProgress(getWatchProgress(video.id).progress);
+    const load = async () => {
+      try {
+        const r = await fetch('/api/broadcasts-json');
+        if (!r.ok) return;
+        const data: { videos: Array<{ video_id: string; video_url: string; title: string; description: string }> } = await r.json();
+        if (!data.videos?.length) return;
+        // Last entry in content.json = newest broadcast
+        const last = data.videos[data.videos.length - 1];
+        const basic: Lesson = {
+          id: last.video_id,
+          title: last.title || last.video_id,
+          description: last.description,
+          embedUrl: last.video_url,
+          duration: '—',
+          durationSec: 0,
+          posterUrl: null,
+          chapters: [],
+        };
+        setLastBroadcast(basic);
+        setLastBroadcastProgress(getWatchProgress(basic.id).progress);
+        // Enrich with poster + duration from Kinescope
+        const r2 = await fetch(`/api/videos/by-ids?ids=${last.video_id}`);
+        if (r2.ok) {
+          const meta: { videos: Lesson[] } = await r2.json();
+          if (meta.videos[0]) {
+            const enriched = { ...basic, ...meta.videos[0], title: basic.title };
+            setLastBroadcast(enriched);
+          }
         }
-      })
-      .catch(() => {});
+      } catch {}
+    };
+    load();
   }, []);
 
   if (!user) return <LandingPage />;
