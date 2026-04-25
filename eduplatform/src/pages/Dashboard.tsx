@@ -265,7 +265,7 @@ export const Dashboard = () => {
 
       <SubscriptionBanner />
 
-      {lastBroadcast && lastBroadcastProgress < 95 && (
+      {lastBroadcast && (
         <section>
           <div className="flex items-center gap-2 mb-3 px-1">
             <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />

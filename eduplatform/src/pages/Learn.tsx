@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Search, SlidersHorizontal, Bookmark, EyeOff, ChevronUp, ChevronDown, X, Radio, Play, Clock } from 'lucide-react';
+import { Search, SlidersHorizontal, Bookmark, EyeOff, ChevronUp, ChevronDown, X, Radio } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Lesson } from '../types';
 import {
@@ -83,8 +83,6 @@ export const Learn = () => {
   const [liveBroadcast, setLiveBroadcast] = useState<LiveBroadcast>({ active: false });
   const [liveLoading, setLiveLoading] = useState(false);
 
-  // Latest broadcast (shown in materials tab)
-  const [latestBroadcast, setLatestBroadcast] = useState<Lesson | null>(null);
 
   // Broadcasts state
   const [broadcastVideos, setBroadcastVideos] = useState<Lesson[]>([]);
@@ -111,37 +109,6 @@ export const Learn = () => {
     fetch('/api/catalog?section=materials')
       .then(r => r.ok ? r.json() : { categories: [] })
       .then(d => setMaterialCategories(d.categories || []));
-  }, []);
-
-  // Load the single latest broadcast for the materials tab header
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const r = await fetch('/api/broadcasts-json');
-        if (!r.ok) return;
-        const data: { videos: Array<{ video_id: string; video_url: string; title: string; description: string }> } = await r.json();
-        if (!data.videos.length) return;
-        const first = data.videos[0];
-        const basic: Lesson = {
-          id: first.video_id,
-          title: first.title || first.video_id,
-          description: first.description,
-          embedUrl: first.video_url,
-          duration: '—',
-          durationSec: 0,
-          posterUrl: null,
-          chapters: [],
-        };
-        setLatestBroadcast(basic);
-        // Enrich with poster + duration
-        const r2 = await fetch(`/api/videos/by-ids?ids=${first.video_id}`);
-        if (r2.ok) {
-          const meta: { videos: Lesson[] } = await r2.json();
-          if (meta.videos[0]) setLatestBroadcast({ ...basic, ...meta.videos[0] });
-        }
-      } catch {}
-    };
-    load();
   }, []);
 
   // Sync with global history/watch later updates
@@ -639,61 +606,7 @@ export const Learn = () => {
       )}
 
       {activeTab === 'materials' && !globalSearch && (
-        <div className="space-y-6">
-          {latestBroadcast && (
-            <div className="space-y-3">
-              <h2 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
-                <Radio size={12} className="text-orange-500" /> Последний эфир
-              </h2>
-              <button
-                onClick={() => navigate(`/watch/${latestBroadcast.id}`, { state: { video: latestBroadcast } })}
-                className="group w-full relative bg-zinc-900 border border-white/5 rounded-3xl overflow-hidden hover:border-orange-500/30 transition-all duration-300 text-left"
-              >
-                {latestBroadcast.posterUrl ? (
-                  <div className="relative aspect-video w-full overflow-hidden">
-                    <img
-                      src={latestBroadcast.posterUrl}
-                      alt={latestBroadcast.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-14 h-14 bg-black/50 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center group-hover:bg-orange-500/80 group-hover:border-orange-500 transition-all duration-300">
-                        <Play size={22} className="text-white ml-1" fill="currentColor" />
-                      </div>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <p className="text-white font-bold text-base leading-snug line-clamp-2">{latestBroadcast.title}</p>
-                      {latestBroadcast.duration && latestBroadcast.duration !== '—' && (
-                        <p className="text-zinc-400 text-xs mt-1 flex items-center gap-1">
-                          <Clock size={11} /> {latestBroadcast.duration}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-4 p-4">
-                    <div className="w-12 h-12 bg-orange-500/10 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-orange-500/20 transition-colors">
-                      <Play size={20} className="text-orange-500 ml-0.5" fill="currentColor" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-white font-bold text-sm truncate">{latestBroadcast.title}</p>
-                      {latestBroadcast.duration && latestBroadcast.duration !== '—' && (
-                        <p className="text-zinc-500 text-xs mt-0.5 flex items-center gap-1">
-                          <Clock size={11} /> {latestBroadcast.duration}
-                        </p>
-                      )}
-                    </div>
-                    <div className="shrink-0 text-zinc-600 group-hover:text-orange-500 transition-colors">
-                      <Play size={18} />
-                    </div>
-                  </div>
-                )}
-              </button>
-            </div>
-          )}
-          <KinescopeBrowser />
-        </div>
+        <KinescopeBrowser />
       )}
     </motion.div>
   );
