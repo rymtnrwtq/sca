@@ -62,8 +62,8 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 // Config constants
 const ALLOWED_PROJECTS = {
   broadcasts: ['cc147751-488b-4701-92c0-14f77e068ebe'],
-  seminars: ['75a3101e-c447-40bf-9dac-6ab66d06cfe9', '998ad1d1-b0a1-47e1-aa40-58a295fb142e'],
-  materials: ['75a3101e-c447-40bf-9dac-62c5cd40fcab']
+  seminars: ['cc147751-488b-4701-92c0-14f77e068ebe', '75a3101e-c447-40bf-9dac-6ab66d06cfe9', 'c5c28d21-6c68-46db-ac38-2464da23221c', '70afae6f-ef33-47c3-9b9b-894ed4585069', '553fc835-0de7-445f-b514-f6ef4c646d07'],
+  materials: ['75a3101e-c447-40bf-9dac-6ab66d06cfe9', 'cc147751-488b-4701-92c0-14f77e068ebe']
 };
 
 const db = new Database("data.db");
@@ -263,7 +263,7 @@ const catalogSeedData = {
         { folder: '3afd0464-84f1-47a9-9ab2-c27dd721bd66', project: null, videoIds: null, title: 'Сборник конференций и семинаров ВФП', description: 'Доступ к записям, материалам и ключевым выводам мероприятий, посвящённых развитию плавания в России.', count: 17 },
         { folder: 'a327668d-16d7-4494-873b-d2de9291868f', project: null, videoIds: null, title: 'Материалы Европейской федерации плавания LEN', description: 'Доступ к записям от лучших тренеров Европы и мира. Лекции для тренеров и спортсменов.', count: 10 },
         { folder: '0971e5ce-d33b-4f39-a30b-525a61913916', project: null, videoIds: null, title: 'Семинар при поддержке НОК Беларуси 2023', description: 'Семинар для тренеров по плаванию при поддержке Национального Олимпийского Комитета Беларуси.', count: 7 },
-        { folder: '4cb0cd5d-c2d5-46c2-8b3f-9e00b6f2206c', project: '75a3101e-c447-40bf-9dac-6ab66d06cfe9', videoIds: null, title: 'Онлайн конференция по психологии', description: 'Онлайн конференция спортивной психологии для родителей и спортсменов.', count: 12 },
+        { folder: '4cb0cd5d-c2d5-46c2-8b3f-9e00b6f2206c', project: 'cc147751-488b-4701-92c0-14f77e068ebe', videoIds: null, title: 'Онлайн конференция по психологии', description: 'Онлайн конференция спортивной психологии для родителей и спортсменов.', count: 12 },
       ]
     },
   ],
@@ -281,7 +281,7 @@ const catalogSeedData = {
     {
       key: 'training', label: 'Тренировки и упражнения',
       items: [
-        { folder: '363f704b-e3e5-4797-8fde-aef816233c32', project: '75a3101e-c447-40bf-9dac-6ab66d06cfe9', videoIds: null, title: 'ОФП на суше с Постовым А.И.', description: 'Упражнения для развития силы и выносливости вне воды.', count: 15 },
+        { folder: '363f704b-e3e5-4797-8fde-aef816233c32', project: 'cc147751-488b-4701-92c0-14f77e068ebe', videoIds: null, title: 'ОФП на суше с Постовым А.И.', description: 'Упражнения для развития силы и выносливости вне воды.', count: 15 },
         { folder: 'ffe93a8c-9170-45af-846b-d47b92b84ada', project: null, videoIds: null, title: 'Комплексы упражнений от Александра Чиркина', description: 'Комплексы упражнений базового уровня на суше и в воде от тренера Александра Чиркина.', count: 2 },
         { folder: '08eb9bc1-c3e4-4868-887a-5754b2e27eac', project: null, videoIds: null, title: 'Лекции Александра Манкевича', description: 'Тактика и методика подготовки пловцов. Лекции из СК Альбатрос, Волгоград.', count: 23 },
         { folder: null, project: null, videoIds: 'jfNrEKt4228C3iHQiYjzDp,nXD75RpCS7wskURscXVTH4', title: 'Выездной мастер-класс Яськевич Ольги', description: 'Работа с группой на выезде: тренировка в зале и тренировка на воде.', count: 2 },
@@ -291,16 +291,16 @@ const catalogSeedData = {
       key: 'masterclass', label: 'Мастер-классы тренеров',
       items: [
         { folder: 'ef1fc503-fb65-45a9-85a5-e9f866f63c90', project: null, videoIds: null, title: 'Мастер-классы в Ниагара Фитнес', description: 'Опыт и подходы к подготовке спортсменов. Выездные мастер-классы ведущих тренеров.', count: 23 },
-        { folder: '782701d7-e44f-4388-84b7-b1984fdc7237', project: '998ad1d1-b0a1-47e1-aa40-58a295fb142e', videoIds: null, title: 'Комплексный подход Тодда ДеСорбо', description: 'Тренировки по спринтерскому вольному стилю от тренера Олимпийских чемпионов.', count: 2 },
+        { folder: '782701d7-e44f-4388-84b7-b1984fdc7237', project: 'cc147751-488b-4701-92c0-14f77e068ebe', videoIds: null, title: 'Комплексный подход Тодда ДеСорбо', description: 'Тренировки по спринтерскому вольному стилю от тренера Олимпийских чемпионов.', count: 2 },
       ]
     },
     {
       key: 'science', label: 'Научно-образовательные',
       items: [
-        { folder: 'fed6e3d1-0c0c-4341-a4c0-2e675ec3b3f8', project: '75a3101e-c447-40bf-9dac-62c5cd40fcab', videoIds: null, title: 'Курс по психологии от Мулярчик', description: 'Эффективные методы мотивации, работа с подростками, переходный возраст в спорте.', count: 9 },
+        { folder: 'fed6e3d1-0c0c-4341-a4c0-2e675ec3b3f8', project: 'cc147751-488b-4701-92c0-14f77e068ebe', videoIds: null, title: 'Курс по психологии от Мулярчик', description: 'Эффективные методы мотивации, работа с подростками, переходный возраст в спорте.', count: 9 },
         { folder: null, project: null, videoIds: 'knH1aKbitsov7dnBhpU8ts,0ADWnGw3FKr6beGhedZ8u7,4pG5DLf1Sqq8U5a9KkZHFk,g12QpPK32uxydi11jano3z,2eRWsCvLqx5VqVapm91JNj,wY615ttAFSPPAzWWoiN8Jm,cZzUWBZ4DP5gCoKitEeBmj,2a4UqQCMLhXGJeuz8frFVo,oDknMJ5ncvMPVQAYPbHgbW', title: 'Курс по психологии «Пульт управления мозгом»', description: 'Курс спортивной психологии. Постановка целей, управление эмоциями, оптимальное боевое состояние и работа со страхом соревнований.', count: 9 },
         { folder: null, project: null, videoIds: 'a3NuVnyUS7mTcSakNn8eUf,9u3rYoBTHuSSGtJtJVahe5,rxVTfpJZPfR3aJrnnRJ9AG,gSERBZtmqtQMtX7k2fbjoF,0X1AaczsbhqJhTrgPVKSDo,pcCY99YmADry2MzRcPfp25,eikHcoecr8XxT9TE9BamP9,qXntcCpvtD32rn6ixhwgcw,t27E7uDcZYr3x3wEqbyZfH,vFo7ZrHBcsXgN7GYF77AFB,9rdPviRDa8TsfRBk66rXKn,pgiFbJYHbgCjkDCAM7r7sT,7tbdw7bmganngrHvtjLLGs,kFJWMad5idnvyxnVbQdMSQ,oWUu3EoEq1bgkNPsnrne6R', title: 'Сборник от Белорусского ГУФК', description: 'Конференции и лекции от Белорусского государственного университета физической культуры.', count: 15 },
-        { folder: '2ea20880-0c9f-4044-8d97-1cd1018d4e5e', project: '75a3101e-c447-40bf-9dac-6ab66d06cfe9', videoIds: null, title: 'Образовательные материалы Aqualibrium', description: 'Школа плавания и фридайвинга. Курс по методике Total Immersion и открытой воде.', count: 10 },
+        { folder: '2ea20880-0c9f-4044-8d97-1cd1018d4e5e', project: 'cc147751-488b-4701-92c0-14f77e068ebe', videoIds: null, title: 'Образовательные материалы Aqualibrium', description: 'Школа плавания и фридайвинга. Курс по методике Total Immersion и открытой воде.', count: 10 },
         { folder: null, project: null, videoIds: 'rL1PJeB4hQE21RMh9qFVaT,dVtkFgo4WvFvBPETW8bb9K,g5fJZpjVSdHPPE1G2Hku8r,e3CNvA46tab6C11sq1F7Hr,6VmZrBuV95Rjed6JSL68F1,3GjmAykpjupdVLMRoZjsjL,7KsEgCVSNzAJhCAm987ycY', title: 'Подборка от WORLD AQUATICS (RU)', description: 'Официальные материалы международной федерации. Разборы лучших пловцов и соревнований 2024–2025.', count: 7 },
       ]
     },
@@ -313,8 +313,8 @@ const catalogSeedData = {
     {
       key: 'motivation', label: 'Личности и мотивация',
       items: [
-        { folder: '4cb0cd5d-c2d5-46c2-8b3f-9e00b6f2206c', project: '75a3101e-c447-40bf-9dac-6ab66d06cfe9', videoIds: null, title: 'Семинар «Воспитай Чемпиона»', description: 'Ценности, привычки и методы подготовки спортсменов мирового уровня.', count: 12 },
-        { folder: '70a805db-2189-43c9-ba25-e87ff22af4de', project: '998ad1d1-b0a1-47e1-aa40-58a295fb142e', videoIds: null, title: 'Материалы WORLD AQUATICS', description: 'Успех олимпийских чемпионов: Сара Сьёстрём, Адам Пити, Давид Попович — рассказы их тренеров.', count: 7 },
+        { folder: '4cb0cd5d-c2d5-46c2-8b3f-9e00b6f2206c', project: 'cc147751-488b-4701-92c0-14f77e068ebe', videoIds: null, title: 'Семинар «Воспитай Чемпиона»', description: 'Ценности, привычки и методы подготовки спортсменов мирового уровня.', count: 12 },
+        { folder: '70a805db-2189-43c9-ba25-e87ff22af4de', project: 'cc147751-488b-4701-92c0-14f77e068ebe', videoIds: null, title: 'Материалы WORLD AQUATICS', description: 'Успех олимпийских чемпионов: Сара Сьёстрём, Адам Пити, Давид Попович — рассказы их тренеров.', count: 7 },
         { folder: null, project: null, videoIds: '53M9ePEDAoCN3FGTzCs8Z3,3ADSKcLdffYdFH7UKGagZm,5WT7ATTW7GDgZntSJi5VLA,6rswEoFtoPrsXu84mxugJ9,tkhXKFG7JrfKdUsGJG5kY7,t3751GPkdDuzjPX47v25tb,tJ2eQ74nTMms3WWe3dM1g4,mkkQvkmegsLvN82XFRtkfe', title: 'Интервью с Бобом Боуманом', description: 'Серия интервью с тренером Майкла Фелпса. Характеристики чемпионов и секреты подготовки к Олимпийским играм.', count: 8 },
         { folder: null, project: null, videoIds: 'tHXRo8xxNFYwXKBQ72TbX6,vQ9vAqWUykCH3XGUqJSPce', title: 'Лекция Адриана Радулеску «Успех Давида Поповича в Париже-2024»', description: 'Разбор победного выступления Давида Поповича тренером Адрианом Радулеску. Доступна на русском и английском языках.', count: 2 },
       ]
@@ -825,7 +825,9 @@ function cleanupBotAuths() {
 let botPollOffset = 0;
 
 // Vienna server proxy (85.192.42.103) → api.telegram.org
-const BOT_SEND_URL = `http://85.192.42.103:8088/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+// All Telegram API calls go through Vienna to bypass Russian DPI
+const TG_PROXY_BASE = `http://85.192.42.103:8088`;
+const BOT_SEND_URL = `${TG_PROXY_BASE}/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
 async function botSend(chatId: number, text: string) {
   try {
@@ -851,7 +853,7 @@ async function pollBotUpdates() {
     cleanupBotAuths();
 
     // Use POST to avoid URL-encoding issues with allowed_updates
-    const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates`, {
+    const r = await fetch(`${TG_PROXY_BASE}/bot${TELEGRAM_BOT_TOKEN}/getUpdates`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ offset: botPollOffset, timeout: 25, allowed_updates: ['message'] }),
@@ -872,7 +874,7 @@ async function pollBotUpdates() {
         const from = msg.from;
         if (!from) continue;
 
-        // Extract code from "/start CODE" (deep-link) or plain text
+        // Extract code from "/start CODE" (deep-link) or plain 8-char hex text only
         let code: string | null = null;
         if (msg.text.startsWith('/start ')) {
           code = msg.text.slice(7).trim().toUpperCase();
@@ -880,11 +882,23 @@ async function pollBotUpdates() {
           code = msg.text.trim().toUpperCase();
         }
 
-        if (!code) continue;
+        // Ignore everything that doesn't look like an 8-char hex code
+        if (!code || !/^[0-9A-F]{8}$/.test(code)) continue;
 
         log.info({ code, chatId, from: from.id }, '[BotAuth] received code candidate');
 
         const entry = pendingBotAuths.get(code);
+
+        // Code exists but TTL expired
+        if (entry && Date.now() - entry.created > BOT_AUTH_TTL_MS) {
+          log.info({ code }, '[BotAuth] code expired — notifying user');
+          setTimeout(() => botSend(chatId,
+            '⏱ Этот код устарел.\n\nВернитесь на сайт и нажмите «Войти через Telegram» ещё раз, чтобы получить новый код.'
+          ), 2000);
+          continue;
+        }
+
+        // Code not in pending map — silently ignore
         if (!entry) {
           log.info({ code }, '[BotAuth] code not in pending map — ignoring');
           continue;
@@ -900,8 +914,13 @@ async function pollBotUpdates() {
           auth_date: Math.floor(Date.now() / 1000),
         };
 
+        // Determine if this is a signin (needs site account) or link (account exists)
+        const replyText = entry.mode === 'signin'
+          ? '✅ Код принят! Вернитесь на сайт — вход выполнится автоматически.'
+          : '✅ Код принят! Вернитесь на сайт — Telegram будет привязан автоматически.';
+
         log.info({ code, chatId }, '[BotAuth] sending reply');
-        botSend(chatId, 'Вернитесь на сайт.');
+        setTimeout(() => botSend(chatId, replyText), 2000);
       }
     }
   } catch (e: any) {
@@ -941,18 +960,15 @@ function parseUserAgent(ua: string): string {
   return os ? `${browser} · ${os}` : browser;
 }
 
-function trackDevice(userId: string, deviceId: string, userAgent: string, isAdmin = false): boolean {
+function trackDevice(userId: string, deviceId: string, userAgent: string, _isAdmin = false): boolean {
   try {
+    const name = parseUserAgent(userAgent);
     const existing = db.prepare("SELECT id FROM user_devices WHERE id = ? AND user_id = ?").get(deviceId, userId);
     if (existing) {
-      db.prepare("UPDATE user_devices SET last_seen = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?").run(deviceId, userId);
+      db.prepare("UPDATE user_devices SET last_seen = CURRENT_TIMESTAMP, name = ? WHERE id = ? AND user_id = ?").run(name, deviceId, userId);
       return true;
     }
-    if (!isAdmin) {
-      const count = (db.prepare("SELECT COUNT(*) as c FROM user_devices WHERE user_id = ?").get(userId) as any).c;
-      if (count >= 5) return false;
-    }
-    const name = parseUserAgent(userAgent);
+    // No device limit — allow unlimited sessions
     db.prepare("INSERT INTO user_devices (id, user_id, name) VALUES (?, ?, ?)").run(deviceId, userId, name);
     return true;
   } catch (e: any) {
@@ -966,21 +982,30 @@ let latestBroadcastCache: { video: any } | null = null;
 
 async function fetchAndCacheLatestBroadcast(): Promise<void> {
   try {
-    const projectId = ALLOWED_PROJECTS.broadcasts[0];
-    const data = await kinescopeFetch(`/videos?project_id=${projectId}&per_page=500`);
-    const raw: any[] = data.data || [];
-    const sorted = [...raw].sort((a, b) => {
-      const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
-      return tb - ta;
-    });
-    const isValidId = (v: any) => {
-      const id = String(v.id ?? '');
-      return id.length > 4 && !/^\d+$/.test(id);
-    };
-    const best = sorted.find(isValidId) ?? sorted[0];
-    latestBroadcastCache = { video: best ? formatKinescopeVideo(best) : null };
-    log.info({ title: latestBroadcastCache.video?.title ?? 'none' }, '[Cache] Latest broadcast video cached');
+    // Take the last video from content.json (newest = last entry in live_broadcasts.videos)
+    const contentVideos: any[] = contentJson?.live_broadcasts?.videos ?? [];
+    const last = [...contentVideos].reverse().find((v: any) => v.video_id && v.type === 'kinescope');
+    if (!last) { latestBroadcastCache = { video: null }; return; }
+
+    // Enrich with Kinescope metadata (poster, duration, chapters)
+    const data = await kinescopeFetch(`/videos/${last.video_id}`);
+    const raw = data.data ?? data;
+    const video = raw
+      ? {
+          ...formatKinescopeVideo(raw),
+          title: last.title || raw.title || last.video_id,
+        }
+      : {
+          id: last.video_id,
+          title: last.title || last.video_id,
+          embedUrl: last.video_url,
+          posterUrl: null,
+          duration: '—',
+          durationSec: 0,
+          chapters: [],
+        };
+    latestBroadcastCache = { video };
+    log.info({ title: video.title }, '[Cache] Latest broadcast video cached');
   } catch (e: any) {
     log.warn({ err: e.message }, '[Cache] Failed to cache latest broadcast');
   }
@@ -1095,9 +1120,6 @@ async function startServer() {
       if (row && await bcrypt.compare(password, row.password_hash)) {
         const deviceId = device_id || crypto.randomUUID();
         const deviceAllowed = trackDevice(row.id, deviceId, req.headers['user-agent'] || '', !!row.is_admin);
-        if (!deviceAllowed) {
-          return res.status(403).json({ success: false, message: "Достигнут лимит устройств (5). Удалите одно из устройств в профиле и попробуйте снова." });
-        }
 
         try { recomputeUserTier(db, String(row.id)); } catch {}
         const fullRow = db.prepare("SELECT id, username, name, email, first_name, last_name, tier, is_admin, subscription_expires_at, telegram_id, telegram_username, telegram_first_name, telegram_last_name, telegram_photo_url FROM users WHERE id = ?").get(row.id) as any;
@@ -1139,9 +1161,6 @@ async function startServer() {
       }
       const deviceId = device_id || crypto.randomUUID();
       const deviceAllowed = trackDevice(row.id, deviceId, req.headers['user-agent'] || '', !!row.is_admin);
-      if (!deviceAllowed) {
-        return res.status(403).json({ success: false, message: "Достигнут лимит устройств (5). Удалите одно из устройств в профиле." });
-      }
       // Update telegram data
       db.prepare(`UPDATE users SET telegram_username=?, telegram_first_name=?, telegram_last_name=?, telegram_photo_url=?, telegram_auth_date=? WHERE id=?`).run(
         telegram.username ?? null, telegram.first_name ?? null, telegram.last_name ?? null,
@@ -1208,9 +1227,6 @@ async function startServer() {
 
       const deviceId = device_id || crypto.randomUUID();
       const deviceAllowed = trackDevice(row.id, deviceId, req.headers['user-agent'] || '', !!row.is_admin);
-      if (!deviceAllowed) {
-        return res.status(403).json({ success: false, message: "Достигнут лимит устройств (5). Удалите одно из устройств в профиле." });
-      }
 
       const user = { id: row.id, username: row.username, name: row.name, tier: row.tier, progress: 0, is_admin: row.is_admin ?? 0 };
       const token = await new SignJWT(user)
@@ -1388,6 +1404,11 @@ async function startServer() {
     try {
       const row = db.prepare("SELECT id, username, name, email, first_name, last_name, tier, is_admin, subscription_expires_at, payment_method_id, trial_used, auto_renew, telegram_id, telegram_username, telegram_first_name, telegram_last_name, telegram_photo_url FROM users WHERE id = ?").get(req.user.id) as any;
       if (!row) return res.status(404).json({ error: "User not found" });
+      // Track device visit on every /api/me call (updates last_seen)
+      const deviceId = (req.headers['x-device-id'] as string | undefined)?.trim();
+      if (deviceId && deviceId.length > 4) {
+        try { trackDevice(req.user.id, deviceId, req.headers['user-agent'] || ''); } catch {}
+      }
       // Re-evaluate tier from tribute payments on every /api/me hit (cheap, single user)
       try { recomputeUserTier(db, req.user.id); } catch {}
       const refreshed = db.prepare("SELECT tier, subscription_expires_at FROM users WHERE id = ?").get(req.user.id) as any;
@@ -1672,7 +1693,7 @@ async function startServer() {
     try {
       const projectId = req.query.project_id;
       if (!projectId) return res.status(400).json({ error: "project_id required" });
-      const data = await kinescopeFetch(`/folders?project_id=${projectId}&per_page=100`);
+      const data = await kinescopeFetch(`/projects/${projectId}/folders?per_page=200`);
       res.json({ folders: data.data || [] });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -2155,9 +2176,12 @@ async function startServer() {
         conditions.push("(LOWER(u.username) LIKE ? OR LOWER(u.name) LIKE ?)"); 
         params.push(`%${search}%`, `%${search}%`); 
       }
-      if (tier) { 
-        conditions.push("u.tier = ?"); 
-        params.push(tier); 
+      if (tier) {
+        conditions.push("u.tier = ?");
+        params.push(tier);
+      }
+      if (req.query.has_telegram === '1') {
+        conditions.push("u.telegram_id IS NOT NULL");
       }
       if (conditions.length) query += " AND " + conditions.join(" AND ");
       query += " ORDER BY u.created_at DESC";
@@ -2252,8 +2276,38 @@ async function startServer() {
   // Admin: list payments for a user
   app.get("/api/admin/users/:id/payments", requireAdmin, (req: any, res) => {
     try {
-      const payments = db.prepare("SELECT id, plan, amount, currency, status, created_at FROM payments WHERE user_id = ? ORDER BY created_at DESC").all(req.params.id);
+      const user = db.prepare("SELECT telegram_id FROM users WHERE id = ?").get(req.params.id) as any;
+      const tgId = user?.telegram_id ?? null;
+      const payments = db.prepare(`
+        SELECT id, event_name, subscription_name, channel_name, amount, currency, period, expires_at, paid_at, source, telegram_user_id, user_id
+        FROM tribute_payments
+        WHERE (? IS NOT NULL AND telegram_user_id = ?) OR user_id = ?
+        ORDER BY COALESCE(paid_at, created_at) DESC
+      `).all(tgId, tgId, req.params.id);
       res.json({ payments });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/admin/tribute-payments/:paymentId/link-user", requireAdmin, (req: any, res) => {
+    try {
+      const { user_id } = req.body;
+      if (!user_id) return res.status(400).json({ error: "user_id required" });
+      db.prepare("UPDATE tribute_payments SET user_id = ? WHERE id = ?").run(user_id, req.params.paymentId);
+      recomputeUserTier(db, user_id);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/admin/tribute-payments/:paymentId/unlink-user", requireAdmin, (req: any, res) => {
+    try {
+      const row = db.prepare("SELECT user_id FROM tribute_payments WHERE id = ?").get(req.params.paymentId) as any;
+      db.prepare("UPDATE tribute_payments SET user_id = NULL WHERE id = ?").run(req.params.paymentId);
+      if (row?.user_id) { try { recomputeUserTier(db, row.user_id); } catch {} }
+      res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -2269,6 +2323,28 @@ async function startServer() {
     }
   });
 
+  // Admin: set telegram link for a user
+  app.put("/api/admin/users/:id/telegram", requireAdmin, (req: any, res) => {
+    try {
+      const { telegram_id } = req.body;
+      if (!telegram_id) return res.status(400).json({ error: "telegram_id required" });
+      db.prepare("UPDATE users SET telegram_id = ? WHERE id = ?").run(String(telegram_id), req.params.id);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Admin: remove telegram link for a user
+  app.delete("/api/admin/users/:id/telegram", requireAdmin, (req: any, res) => {
+    try {
+      db.prepare("UPDATE users SET telegram_id = NULL, telegram_username = NULL, telegram_first_name = NULL, telegram_last_name = NULL, telegram_photo_url = NULL WHERE id = ?").run(req.params.id);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Reset user password
   app.post("/api/admin/users/:id/reset-password", requireAdmin, async (req: any, res) => {
     try {
@@ -2278,6 +2354,82 @@ async function startServer() {
       db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(hash, req.params.id);
       res.json({ success: true });
     } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── Library: dynamic Kinescope folder browser ────────────────────────────────
+  // Root is ДОП МАТЕРИАЛЫ inside ОБЩИЙ ДОСТУП
+  const LIBRARY_PROJECT_ID = 'cc147751-488b-4701-92c0-14f77e068ebe';
+  const LIBRARY_ROOT_FOLDER_ID = '0866f1d0-35ad-42ba-b402-1291abe6891e'; // ДОП МАТЕРИАЛЫ
+  const LIBRARY_TTL_MS = 5 * 60 * 1000;
+
+  // Kinescope folders API ignores parent_id filter — always returns all project folders.
+  // We fetch them all once and filter by parent_id in memory.
+  let libAllFolders: any[] | null = null;
+  let libAllFoldersTs = 0;
+
+  async function libGetAllFolders(): Promise<any[]> {
+    if (libAllFolders && Date.now() - libAllFoldersTs < LIBRARY_TTL_MS) return libAllFolders;
+    const all: any[] = [];
+    let page = 1;
+    while (true) {
+      const data = await kinescopeFetch(`/projects/${LIBRARY_PROJECT_ID}/folders?per_page=200&page=${page}`) as any;
+      const items: any[] = data.data || [];
+      all.push(...items);
+      const total = data.meta?.pagination?.total ?? 0;
+      if (all.length >= total || items.length === 0) break;
+      page++;
+    }
+    libAllFolders = all;
+    libAllFoldersTs = Date.now();
+    return all;
+  }
+
+  const libVideosCache = new Map<string, { data: any[]; ts: number }>();
+
+  async function libVideos(folderId: string): Promise<any[]> {
+    const hit = libVideosCache.get(folderId);
+    if (hit && Date.now() - hit.ts < LIBRARY_TTL_MS) return hit.data;
+    const all: any[] = [];
+    let page = 1;
+    while (true) {
+      const data = await kinescopeFetch(`/videos?project_id=${LIBRARY_PROJECT_ID}&folder_id=${folderId}&per_page=200&page=${page}`) as any;
+      const items: any[] = data.data || [];
+      all.push(...items);
+      const total = data.meta?.pagination?.total ?? 0;
+      if (all.length >= total || items.length === 0) break;
+      page++;
+    }
+    const result = all.map((v: any) => ({
+      id: v.id,
+      title: v.title,
+      duration: formatDuration(v.duration_in_seconds ?? 0),
+      durationSec: v.duration_in_seconds ?? 0,
+      posterUrl: v.poster_url ?? null,
+      embedUrl: `https://kinescope.io/embed/${v.id}`,
+    }));
+    libVideosCache.set(folderId, { data: result, ts: Date.now() });
+    return result;
+  }
+
+  // GET /api/library/:folderId — folders + videos inside a folder
+  // folderId = 'root' → LIBRARY_ROOT_FOLDER_ID (ДОП МАТЕРИАЛЫ)
+  app.get('/api/library/:folderId', async (req: any, res) => {
+    const rawId = req.params.folderId;
+    const folderId = rawId === 'root' ? LIBRARY_ROOT_FOLDER_ID : rawId;
+    try {
+      const [allFolders, videos] = await Promise.all([libGetAllFolders(), libVideos(folderId)]);
+      // Filter folders to only direct children of this folder
+      const folders = allFolders
+        .filter((f: any) => f.parent_id === folderId)
+        .map((f: any) => ({ id: f.id, name: f.name, parent_id: f.parent_id, items_count: f.items_count ?? 0, poster_url: f.poster_url ?? null }));
+      const meta = allFolders.find((f: any) => f.id === folderId);
+      const folderName = rawId === 'root' ? 'ДОП МАТЕРИАЛЫ' : (meta?.name ?? null);
+      const parentId = rawId === 'root' ? null : (meta?.parent_id === LIBRARY_ROOT_FOLDER_ID ? null : meta?.parent_id ?? null);
+      res.json({ folderId, folderName, parentId, folders, videos });
+    } catch (e: any) {
+      log.error({ err: e.message, folderId }, '[Library] fetch error');
       res.status(500).json({ error: e.message });
     }
   });
