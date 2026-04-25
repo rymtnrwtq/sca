@@ -5,47 +5,62 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+export type InstallGuideType =
+  | 'ios-safari'      // iOS Safari → share → add to home screen
+  | 'ios-inapp'       // iOS in-app browser (Telegram, Chrome iOS) → open in Safari first
+  | 'android-webview' // Android WebView / Telegram → open in Chrome first
+  | 'generic'         // Desktop Firefox, other
+  | null;
+
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [showIOSGuide, setShowIOSGuide] = useState(false);
-  const [showManualGuide, setShowManualGuide] = useState(false);
+  const [guideType, setGuideType] = useState<InstallGuideType>(null);
 
   useEffect(() => {
-    // Check if already installed as PWA
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
       (navigator as any).standalone === true;
 
-    if (isStandalone) {
+    if (isStandalone || localStorage.getItem('pwa_installed') === '1') {
       setIsInstalled(true);
       return;
     }
 
-    if (localStorage.getItem('pwa_installed') === '1') {
-      setIsInstalled(true);
-      return;
-    }
-
-    // Detect iOS
     const ua = navigator.userAgent;
-    const isiOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    setIsIOS(isiOS);
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/.test(ua);
+    // iOS Safari has "Safari/" in UA; in-app browsers (Telegram, Chrome iOS) don't
+    const isIOSSafari = isIOS && /Safari\//.test(ua) && !/CriOS|FxiOS|OPiOS|mercury/.test(ua);
+    // WebView indicators
+    const isWebView = /wv\b|WebView/i.test(ua) || (isAndroid && !/Chrome\//.test(ua)) ||
+      (typeof (window as any).Telegram !== 'undefined') ||
+      // Telegram in-app browser on Android often lacks "Chrome/" but has "Version/"
+      (isAndroid && /Version\//.test(ua) && /Mobile/.test(ua));
 
-    // Listen for beforeinstallprompt (Chrome, Edge, Samsung — only fires on HTTPS)
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
-
     window.addEventListener('beforeinstallprompt', handler);
-
     window.addEventListener('appinstalled', () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
       localStorage.setItem('pwa_installed', '1');
     });
+
+    // Pre-compute guide type for when native prompt is unavailable
+    if (isIOS) {
+      if (isIOSSafari) {
+        (window as any).__pwaGuideType = 'ios-safari';
+      } else {
+        (window as any).__pwaGuideType = 'ios-inapp';
+      }
+    } else if (isAndroid && isWebView) {
+      (window as any).__pwaGuideType = 'android-webview';
+    } else {
+      (window as any).__pwaGuideType = 'generic';
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
@@ -61,24 +76,14 @@ export function usePWAInstall() {
         localStorage.setItem('pwa_installed', '1');
       }
       setDeferredPrompt(null);
-    } else if (isIOS) {
-      setShowIOSGuide(true);
     } else {
-      // Fallback: show manual instructions (HTTP or unsupported browser)
-      setShowManualGuide(true);
+      setGuideType((window as any).__pwaGuideType || 'generic');
     }
-  }, [deferredPrompt, isIOS]);
+  }, [deferredPrompt]);
 
-  const dismissIOSGuide = useCallback(() => {
-    setShowIOSGuide(false);
-  }, []);
+  const dismissGuide = useCallback(() => setGuideType(null), []);
 
-  const dismissManualGuide = useCallback(() => {
-    setShowManualGuide(false);
-  }, []);
-
-  // Show button whenever app is not installed, regardless of prompt availability
   const canInstall = !isInstalled;
 
-  return { canInstall, isInstalled, isIOS, showIOSGuide, showManualGuide, install, dismissIOSGuide, dismissManualGuide };
+  return { canInstall, isInstalled, guideType, install, dismissGuide };
 }

@@ -5,16 +5,17 @@ import { Home, BookOpen, MessageSquare, User as UserIcon, Download } from 'lucid
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
+import { InstallGuideModal } from '../ui/InstallGuide';
 
 export const TabBar = () => {
   const location = useLocation();
   const { user } = useAuth();
-  const { canInstall, install } = usePWAInstall();
+  const { canInstall, guideType, install, dismissGuide } = usePWAInstall();
 
   const tabs = [
     { path: '/', icon: Home, label: 'Главная' },
     { path: '/learn', icon: BookOpen, label: 'Материалы' },
-    { path: '/chat', icon: MessageSquare, label: 'AI (Скоро)' },
+    { path: '/chat', icon: MessageSquare, label: 'AI' },
     { path: '/profile', icon: UserIcon, label: 'Профиль' },
   ];
 
@@ -62,5 +63,6 @@ export const TabBar = () => {
         )}
       </div>
     </nav>
+    <InstallGuideModal type={guideType} onDismiss={dismissGuide} />
   );
 };

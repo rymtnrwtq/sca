@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { BookOpen, Video, Users, Award, ChevronRight, Waves, Trophy, BookMarked, Download } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+import { InstallGuideModal } from '../components/ui/InstallGuide';
 
 const STATS = [
   { value: '25+', label: 'Стран участниц' },
@@ -50,7 +51,7 @@ const FOR_WHOM = [
 
 export const LandingPage = () => {
   const navigate = useNavigate();
-  const { canInstall, install } = usePWAInstall();
+  const { canInstall, guideType, install, dismissGuide } = usePWAInstall();
 
   return (
     <motion.div
@@ -75,7 +76,7 @@ export const LandingPage = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <button
-              onClick={() => window.location.href = 'https://menu.borozdov.ru/auth?tab=register'}
+              onClick={() => navigate('/auth?tab=register')}
               className="group inline-flex items-center justify-center gap-2 px-7 py-4 bg-orange-500 hover:bg-orange-400 text-white font-black text-base rounded-2xl transition-all shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-[1.02] active:scale-[0.98]"
             >
               Зарегистрироваться бесплатно
@@ -115,7 +116,6 @@ export const LandingPage = () => {
       {/* What's inside */}
       <section>
         <h2 className="text-xl sm:text-2xl font-black text-white mb-1">Что вас ждёт</h2>
-        <p className="text-zinc-500 text-sm mb-6">Библиотека материалов в постоянном доступе, новое каждую неделю</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {FEATURES.map(({ icon: Icon, title, desc, color, bg }) => (
             <div key={title} className="flex gap-4 p-4 sm:p-5 bg-zinc-900/40 border border-white/5 rounded-[24px] hover:border-white/10 transition-all">
@@ -160,7 +160,7 @@ export const LandingPage = () => {
             Уже более 4 000 тренеров из 25+ стран используют материалы SCA для профессионального роста
           </p>
           <button
-            onClick={() => window.location.href = 'https://menu.borozdov.ru/auth?tab=register'}
+            onClick={() => navigate('/auth?tab=register')}
             className="group inline-flex items-center gap-2 px-8 py-4 bg-orange-500 hover:bg-orange-400 text-white font-black text-base rounded-2xl transition-all shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:scale-[1.02] active:scale-[0.98]"
           >
             Создать аккаунт
@@ -169,5 +169,6 @@ export const LandingPage = () => {
         </div>
       </section>
     </motion.div>
+    <InstallGuideModal type={guideType} onDismiss={dismissGuide} />
   );
 };
