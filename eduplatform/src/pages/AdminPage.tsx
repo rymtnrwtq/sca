@@ -11,6 +11,37 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 
+/** Parse a SQLite UTC timestamp (with or without T/Z) into a local Date */
+function parseDbDate(s: string | null | undefined): Date | null {
+  if (!s) return null;
+  const normalized = s.replace(' ', 'T') + (s.includes('Z') || s.includes('+') ? '' : 'Z');
+  const d = new Date(normalized);
+  return isNaN(d.getTime()) ? null : d;
+}
+/** Format date+time in user's local timezone with TZ abbreviation */
+function fmtDateTime(s: string | null | undefined, opts?: { dateOnly?: boolean }): string {
+  const d = parseDbDate(s);
+  if (!d) return '—';
+  if (opts?.dateOnly) return d.toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' });
+  return d.toLocaleString('ru', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+}
+/** Relative time + exact time subtitle */
+function fmtRelativeTime(s: string | null | undefined): { relative: string; exact: string } {
+  const d = parseDbDate(s);
+  if (!d) return { relative: '—', exact: '—' };
+  const diffMs = Date.now() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60_000);
+  const diffHours = Math.floor(diffMs / 3_600_000);
+  const diffDays = Math.floor(diffMs / 86_400_000);
+  const relative = diffMin < 2 ? 'только что'
+    : diffMin < 60 ? `${diffMin} мин. назад`
+    : diffHours < 24 ? `${diffHours} ч. назад`
+    : diffDays < 7 ? `${diffDays} дн. назад`
+    : fmtDateTime(s);
+  const exact = d.toLocaleString('ru', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+  return { relative, exact };
+}
+
 const TIER_COLORS: Record<string, string> = {
   premium: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
   free: 'bg-green-500/10 text-green-400 border-green-500/20',
@@ -42,6 +73,11 @@ interface AdminUser {
   last_seen?: string | null;
   notes: string | null; created_at: string;
   watch_count: number; bookmark_count: number;
+  telegram_id?: string | null;
+  telegram_username?: string | null;
+  telegram_first_name?: string | null;
+  telegram_last_name?: string | null;
+  telegram_photo_url?: string | null;
 }
 
 interface HistoryItem {
@@ -68,12 +104,18 @@ interface AdminDeviceItem {
 }
 
 interface AdminPaymentItem {
-  id: string;
-  plan: string;
-  amount: number;
-  currency: string;
-  status: string;
-  created_at: string;
+  id: number;
+  event_name: string;
+  subscription_name: string;
+  channel_name: string | null;
+  amount: number | null;
+  currency: string | null;
+  period: string | null;
+  expires_at: string | null;
+  paid_at: string | null;
+  source: string;
+  telegram_user_id: string | null;
+  user_id: string | null;
 }
 
 interface AdminChatMessage {
@@ -164,12 +206,16 @@ function CustomSelect({
 
 // ─── User Avatar ───────────────────────────────────────────────────────────────
 
-function UserAvatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg' }) {
+function UserAvatar({ name, src, size = 'md' }: { name: string; src?: string | null; size?: 'sm' | 'md' | 'lg' }) {
   const sz = size === 'lg' ? 'w-20 h-20 text-3xl' : size === 'md' ? 'w-12 h-12 text-lg' : 'w-10 h-10 text-sm';
   const rounded = size === 'lg' ? 'rounded-[28px]' : 'rounded-2xl';
   return (
-    <div className={cn(sz, rounded, "bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-black shrink-0 shadow-lg shadow-orange-500/20")}>
-      {name?.[0]?.toUpperCase() || '?'}
+    <div className={cn(sz, rounded, "bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-black shrink-0 shadow-lg shadow-orange-500/20 overflow-hidden")}>
+      {src ? (
+        <img src={src} alt={name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ''; }} />
+      ) : (
+        name?.[0]?.toUpperCase() || '?'
+      )}
     </div>
   );
 }
@@ -199,6 +245,8 @@ function UserDetailPanel({ userId, onClose, onUpdate }: { userId: string; onClos
   const [pwForm, setPwForm] = useState({ newPassword: '', confirm: '' });
   const [pwError, setPwError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState('');
+  const [tgInput, setTgInput] = useState('');
+  const [tgSaving, setTgSaving] = useState(false);
   const [toast, setToast] = useState('');
   const [devices, setDevices] = useState<AdminDeviceItem[]>([]);
   const [payments, setPayments] = useState<AdminPaymentItem[]>([]);
@@ -352,7 +400,7 @@ function UserDetailPanel({ userId, onClose, onUpdate }: { userId: string; onClos
             <ArrowLeft size={20} />
           </button>
           <div className="flex items-center gap-3 md:gap-5">
-            <UserAvatar name={user.name || user.username} size="md" />
+            <UserAvatar name={user.name || user.username} src={user.telegram_photo_url} size="md" />
             <div>
               <h2 className="text-xl md:text-3xl font-black text-white tracking-tight leading-tight">{user.name || 'Без имени'}</h2>
               <div className="flex items-center gap-3 mt-1.5 flex-wrap">
@@ -362,10 +410,10 @@ function UserDetailPanel({ userId, onClose, onUpdate }: { userId: string; onClos
                   {TIER_LABELS[user.tier]}
                 </span>
                 {user.subscription_expires_at && (
-                  <span className="text-[10px] font-bold text-zinc-400 flex items-center gap-1.5">
-                    <Calendar size={11} className="text-orange-500/60" />
-                    {user.subscription_started_at ? `с ${new Date(user.subscription_started_at).toLocaleDateString('ru')} ` : ''}
-                    до {new Date(user.subscription_expires_at).toLocaleDateString('ru')}
+                  <span className="text-[10px] font-bold text-zinc-400 flex items-center gap-1.5 break-words">
+                    <Calendar size={11} className="text-orange-500/60 shrink-0" />
+                    {user.subscription_started_at ? `с ${fmtDateTime(user.subscription_started_at, { dateOnly: true })} ` : ''}
+                    до {fmtDateTime(user.subscription_expires_at, { dateOnly: true })}
                   </span>
                 )}
                 {user.is_admin ? (
@@ -619,25 +667,17 @@ function UserDetailPanel({ userId, onClose, onUpdate }: { userId: string; onClos
                 </div>
               ) : devices.map(d => {
                 const isMobile = /iphone|ipad|android/i.test(d.name ?? '');
-                const lastSeen = new Date(d.last_seen);
-                const diffMs = Date.now() - lastSeen.getTime();
-                const diffMin = Math.floor(diffMs / 60_000);
-                const diffHours = Math.floor(diffMs / 3_600_000);
-                const diffDays = Math.floor(diffMs / 86_400_000);
-                const lastSeenStr = diffMin < 2 ? 'только что'
-                  : diffMin < 60 ? `${diffMin} мин. назад`
-                  : diffHours < 24 ? `${diffHours} ч. назад`
-                  : diffDays < 7 ? `${diffDays} дн. назад`
-                  : lastSeen.toLocaleString('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                const { relative, exact } = fmtRelativeTime(d.last_seen);
                 return (
                   <div key={d.id} className="flex items-center justify-between gap-4 p-4 bg-zinc-900/40 border border-white/5 rounded-[24px]">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
                       <div className="w-11 h-11 bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-400 shrink-0">
                         {isMobile ? <Smartphone size={18} /> : <Laptop size={18} />}
                       </div>
-                      <div>
-                        <p className="text-white text-sm font-bold">{d.name || 'Неизвестный браузер'}</p>
-                        <p className="text-zinc-500 text-xs mt-0.5">Активность: {lastSeenStr}</p>
+                      <div className="min-w-0">
+                        <p className="text-white text-sm font-bold truncate">{d.name || 'Неизвестный браузер'}</p>
+                        <p className="text-zinc-500 text-xs mt-0.5">Последний вход: <span className="text-zinc-300">{relative}</span></p>
+                        <p className="text-zinc-600 text-xs break-words">{exact}</p>
                       </div>
                     </div>
                     <button
@@ -661,25 +701,38 @@ function UserDetailPanel({ userId, onClose, onUpdate }: { userId: string; onClos
                     <CreditCard size={32} className="text-white" />
                   </div>
                   <p className="text-zinc-500 font-bold">История платежей пуста</p>
+                  {!data?.user.telegram_id && (
+                    <p className="text-zinc-600 text-xs mt-2">Привяжите Telegram, чтобы подтянуть платежи Tribute</p>
+                  )}
                 </div>
               ) : payments.map(p => {
-                const s = STATUS_LABELS_ADMIN[p.status] ?? { label: p.status, color: 'text-zinc-500' };
+                const EVENT_LABELS: Record<string, { label: string; color: string }> = {
+                  new_subscription: { label: 'Новая подписка', color: 'text-green-400' },
+                  renewed_subscription: { label: 'Продление', color: 'text-green-400' },
+                  recurrent_payment: { label: 'Регулярный платёж', color: 'text-green-400' },
+                  init_payment: { label: 'Оплата', color: 'text-green-400' },
+                  cancelled_subscription: { label: 'Отмена', color: 'text-red-400' },
+                };
+                const ev = EVENT_LABELS[p.event_name] ?? { label: p.event_name, color: 'text-zinc-400' };
+                const amountStr = p.amount != null ? `${(p.amount / 100).toLocaleString('ru')} ${(p.currency || 'RUB').toUpperCase()}` : '—';
+                const dateStr = p.paid_at ? new Date(p.paid_at).toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
                 return (
                   <div key={p.id} className="flex items-center justify-between gap-4 p-4 bg-zinc-900/40 border border-white/5 rounded-[24px]">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
                       <div className="w-11 h-11 bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-400 shrink-0">
                         <CreditCard size={18} />
                       </div>
-                      <div>
-                        <p className="text-white text-sm font-bold">{PLAN_LABELS_ADMIN[p.plan] ?? p.plan}</p>
-                        <p className="text-zinc-500 text-xs mt-0.5">
-                          {new Date(p.created_at).toLocaleString('ru', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </p>
+                      <div className="min-w-0">
+                        <p className="text-white text-sm font-bold truncate">{p.subscription_name}</p>
+                        <p className="text-zinc-500 text-xs mt-0.5">{dateStr}</p>
+                        {p.expires_at && (
+                          <p className="text-zinc-600 text-xs">до {new Date(p.expires_at).toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                        )}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-white text-sm font-black">{p.amount.toLocaleString('ru')} {p.currency}</p>
-                      <p className={cn("text-xs font-bold", s.color)}>{s.label}</p>
+                      <p className="text-white text-sm font-black">{amountStr}</p>
+                      <p className={cn("text-xs font-bold", ev.color)}>{ev.label}</p>
                     </div>
                   </div>
                 );
@@ -733,42 +786,36 @@ function UserDetailPanel({ userId, onClose, onUpdate }: { userId: string; onClos
                 <span className="text-zinc-500 font-bold">ID</span>
                 <span className="text-white font-mono text-[10px] bg-zinc-950 px-2 py-1 rounded-lg border border-white/5 truncate max-w-[120px]">{user.id}</span>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-500 font-bold">Регистрация</span>
-                <span className="text-white font-bold">{new Date(user.created_at).toLocaleDateString('ru')}</span>
+              <div className="flex justify-between items-start gap-2 text-sm">
+                <span className="text-zinc-500 font-bold shrink-0">Регистрация</span>
+                <span className="text-white font-bold text-xs text-right break-words min-w-0">{fmtDateTime(user.created_at)}</span>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-500 font-bold">Логин</span>
-                <span className="text-white font-bold">@{user.username}</span>
+              <div className="flex justify-between items-center gap-2 text-sm">
+                <span className="text-zinc-500 font-bold shrink-0">Логин</span>
+                <span className="text-white font-bold truncate min-w-0">@{user.username}</span>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-500 font-bold">Тариф</span>
-                <span className={cn("text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border", TIER_COLORS[user.tier])}>
+              <div className="flex justify-between items-center gap-2 text-sm">
+                <span className="text-zinc-500 font-bold shrink-0">Тариф</span>
+                <span className={cn("text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border shrink-0", TIER_COLORS[user.tier])}>
                   {TIER_LABELS[user.tier]}
                 </span>
               </div>
               {user.subscription_started_at && (
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-zinc-500 font-bold">Подключена</span>
-                  <span className="text-white font-bold text-xs">
-                    {new Date(user.subscription_started_at).toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  </span>
+                <div className="flex justify-between items-start gap-2 text-sm">
+                  <span className="text-zinc-500 font-bold shrink-0">Подключена</span>
+                  <span className="text-white font-bold text-xs text-right break-words min-w-0">{fmtDateTime(user.subscription_started_at)}</span>
                 </div>
               )}
               {user.subscription_expires_at && (
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-zinc-500 font-bold">Работает до</span>
-                  <span className="text-orange-400 font-bold text-xs">
-                    {new Date(user.subscription_expires_at).toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  </span>
+                <div className="flex justify-between items-start gap-2 text-sm">
+                  <span className="text-zinc-500 font-bold shrink-0">Работает до</span>
+                  <span className="text-orange-400 font-bold text-xs text-right break-words min-w-0">{fmtDateTime(user.subscription_expires_at)}</span>
                 </div>
               )}
               {user.last_seen && (
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-zinc-500 font-bold">Последний вход</span>
-                  <span className="text-white font-bold text-xs">
-                    {new Date(user.last_seen).toLocaleString('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                  </span>
+                <div className="flex justify-between items-start gap-2 text-sm">
+                  <span className="text-zinc-500 font-bold shrink-0">Последний вход</span>
+                  <span className="text-white font-bold text-xs text-right break-words min-w-0">{fmtRelativeTime(user.last_seen).exact}</span>
                 </div>
               )}
               {user.is_admin ? (
@@ -779,6 +826,80 @@ function UserDetailPanel({ userId, onClose, onUpdate }: { userId: string; onClos
                   </span>
                 </div>
               ) : null}
+              <div className="pt-4 border-t border-white/5 space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Send size={14} className="text-blue-400" />
+                  <span className="text-zinc-400 font-bold text-sm">Telegram</span>
+                </div>
+                {user.telegram_id ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-zinc-500 font-bold">ID</span>
+                      <span className="text-white font-mono text-[10px] bg-zinc-950 px-2 py-1 rounded-lg border border-white/5">{user.telegram_id}</span>
+                    </div>
+                    {user.telegram_username && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-zinc-500 font-bold">Username</span>
+                        <a
+                          href={`https://t.me/${user.telegram_username}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-blue-400 font-bold text-xs hover:text-blue-300 hover:underline transition-colors"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          @{user.telegram_username}
+                        </a>
+                      </div>
+                    )}
+                    {(user.telegram_first_name || user.telegram_last_name) && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-zinc-500 font-bold">Имя</span>
+                        <span className="text-white font-bold text-xs">{[user.telegram_first_name, user.telegram_last_name].filter(Boolean).join(' ')}</span>
+                      </div>
+                    )}
+                    <button
+                      disabled={tgSaving}
+                      onClick={async () => {
+                        setTgSaving(true);
+                        try {
+                          await apiFetch(`/api/admin/users/${userId}/telegram`, { method: 'DELETE' });
+                          showToast('Telegram отвязан');
+                          load();
+                        } catch (e: any) { showToast(e.message); }
+                        finally { setTgSaving(false); }
+                      }}
+                      className="w-full py-2.5 bg-blue-500/10 hover:bg-red-500/20 text-blue-400 hover:text-red-400 disabled:opacity-40 rounded-xl text-xs font-black transition-all active:scale-95"
+                    >
+                      Отвязать Telegram
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <input
+                      placeholder="Введите Telegram ID"
+                      value={tgInput}
+                      onChange={e => setTgInput(e.target.value)}
+                      className="w-full bg-zinc-950 border border-white/5 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/40 font-mono placeholder:text-zinc-700"
+                    />
+                    <button
+                      disabled={tgSaving || !tgInput.trim()}
+                      onClick={async () => {
+                        setTgSaving(true);
+                        try {
+                          await apiFetch(`/api/admin/users/${userId}/telegram`, { method: 'PUT', body: JSON.stringify({ telegram_id: tgInput.trim() }) });
+                          showToast('Telegram привязан');
+                          setTgInput('');
+                          load();
+                        } catch (e: any) { showToast(e.message); }
+                        finally { setTgSaving(false); }
+                      }}
+                      className="w-full py-2.5 bg-blue-500/15 hover:bg-blue-500/30 text-blue-400 disabled:opacity-40 rounded-xl text-xs font-black transition-all active:scale-95"
+                    >
+                      Привязать
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1270,7 +1391,7 @@ function NotificationsPanel({ allUsers }: { allUsers: AdminUser[] }) {
                     )}>
                       {selectedUserIds.includes(u.id) && <Check size={12} className="text-white" />}
                     </div>
-                    <UserAvatar name={u.name || u.username} size="sm" />
+                    <UserAvatar name={u.name || u.username} src={u.telegram_photo_url} size="sm" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-white truncate">{u.name || 'Без имени'}</p>
                       <p className="text-xs text-zinc-500 truncate">@{u.username}</p>
@@ -1368,18 +1489,20 @@ export const AdminPage = () => {
   const [usersLoading, setUsersLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [tierFilter, setTierFilter] = useState('');
+  const [tgFilter, setTgFilter] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (currentUser !== undefined && !currentUser?.is_admin) navigate('/');
   }, [currentUser, navigate]);
 
-  const loadUsers = useCallback(async (s = search, t = tierFilter) => {
+  const loadUsers = useCallback(async (s = search, t = tierFilter, tg = tgFilter) => {
     setUsersLoading(true);
     try {
       const params = new URLSearchParams();
       if (s) params.set('search', s);
       if (t) params.set('tier', t);
+      if (tg) params.set('has_telegram', '1');
       const d = await apiFetch(`/api/admin/users?${params}`);
       setUsers(d.users);
     } catch {} finally {
@@ -1387,12 +1510,12 @@ export const AdminPage = () => {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { loadUsers('', ''); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadUsers('', '', false); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const t = setTimeout(() => loadUsers(search, tierFilter), 350);
+    const t = setTimeout(() => loadUsers(search, tierFilter, tgFilter), 350);
     return () => clearTimeout(t);
-  }, [search, tierFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [search, tierFilter, tgFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!currentUser?.is_admin) return null;
 
@@ -1509,7 +1632,19 @@ export const AdminPage = () => {
                 />
               </div>
               <button
-                onClick={() => loadUsers(search, tierFilter)}
+                onClick={() => setTgFilter(v => !v)}
+                className={cn(
+                  "h-12 px-4 border rounded-[18px] flex items-center gap-2 transition-all active:scale-95 shrink-0 text-xs font-black",
+                  tgFilter
+                    ? "bg-blue-500/15 border-blue-500/30 text-blue-400"
+                    : "bg-zinc-900/40 border-white/5 text-zinc-500 hover:text-zinc-300"
+                )}
+              >
+                <Send size={14} />
+                TG
+              </button>
+              <button
+                onClick={() => loadUsers(search, tierFilter, tgFilter)}
                 className="w-12 h-12 bg-zinc-900/40 border border-white/5 rounded-[18px] flex items-center justify-center hover:bg-zinc-800 transition-all active:scale-95 shrink-0"
               >
                 <RefreshCw size={20} className={cn("text-zinc-400", usersLoading && "animate-spin")} />
@@ -1541,13 +1676,18 @@ export const AdminPage = () => {
                     className="w-full flex items-center gap-3 md:gap-5 p-4 md:p-5 bg-zinc-900/40 hover:bg-zinc-900 border border-white/5 hover:border-white/10 rounded-[24px] md:rounded-[32px] transition-all group text-left relative overflow-hidden"
                   >
                     <div className="absolute top-0 left-0 w-1.5 h-full bg-orange-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <UserAvatar name={u.name || u.username} />
+                    <UserAvatar name={u.name || u.username} src={u.telegram_photo_url} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-white font-black text-base md:text-lg tracking-tight group-hover:text-orange-400 transition-colors truncate max-w-[140px] sm:max-w-none">
                           {u.name || 'Без имени'}
                         </span>
                         <span className="text-zinc-500 text-xs md:text-sm font-bold hidden sm:inline">@{u.username}</span>
+                        {u.telegram_id && (
+                          <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/10 flex items-center gap-1" title={u.telegram_username ? `@${u.telegram_username}` : u.telegram_id}>
+                            <Send size={9} /> TG
+                          </span>
+                        )}
                         {u.is_admin ? (
                           <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/10 flex items-center gap-1">
                             <Shield size={9} /> Admin
@@ -1630,6 +1770,9 @@ function TributePaymentsPanel() {
   const [sub, setSub] = useState('');
   const [grandTotal, setGrandTotal] = useState<number>(0);
   const [grandCurrency, setGrandCurrency] = useState<string>('rub');
+  const [allUsers, setAllUsers] = useState<{ id: string; username: string; name: string }[]>([]);
+  const [linkingId, setLinkingId] = useState<number | null>(null);
+  const [linkUserId, setLinkUserId] = useState<Record<number, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1638,15 +1781,37 @@ function TributePaymentsPanel() {
       if (q) params.set('q', q);
       if (sub) params.set('subscription_name', sub);
       params.set('limit', '500');
-      const data = await apiFetch(`/api/admin/tribute-payments?${params}`);
+      const [data, usersData] = await Promise.all([
+        apiFetch(`/api/admin/tribute-payments?${params}`),
+        apiFetch('/api/admin/users?limit=500'),
+      ]);
       setRows(data.payments || []);
       setAllowed(data.allowed || []);
       setGrandTotal(data.grandTotal || 0);
       setGrandCurrency(data.grandCurrency || 'rub');
+      setAllUsers((usersData as any).users || []);
     } catch {} finally { setLoading(false); }
   }, [q, sub]);
 
   useEffect(() => { load(); }, [load]);
+
+  const linkPayment = async (paymentId: number, userId: string) => {
+    setLinkingId(paymentId);
+    try {
+      await apiFetch(`/api/admin/tribute-payments/${paymentId}/link-user`, { method: 'POST', body: JSON.stringify({ user_id: userId }) });
+      await load();
+    } catch (e: any) { alert(e.message); }
+    setLinkingId(null);
+  };
+
+  const unlinkPayment = async (paymentId: number) => {
+    setLinkingId(paymentId);
+    try {
+      await apiFetch(`/api/admin/tribute-payments/${paymentId}/unlink-user`, { method: 'POST' });
+      await load();
+    } catch (e: any) { alert(e.message); }
+    setLinkingId(null);
+  };
 
   const fmtAmount = (k: number | null, c: string | null) => k == null ? '—' : `${(k / 100).toLocaleString('ru')} ${(c || 'rub').toUpperCase()}`;
   const fmtDate = (s: string | null) => !s ? '—' : new Date(s).toLocaleString('ru', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -1703,7 +1868,7 @@ function TributePaymentsPanel() {
                 <th className="text-left py-2 px-3">Событие</th>
                 <th className="text-right py-2 px-3">Сумма</th>
                 <th className="text-left py-2 px-3">Истекает</th>
-                <th className="text-left py-2 px-3">Источник</th>
+                <th className="text-left py-2 px-3">Привязка</th>
               </tr>
             </thead>
             <tbody>
@@ -1714,7 +1879,7 @@ function TributePaymentsPanel() {
                     {r.username ? (
                       <div>
                         <p className="text-white">{r.user_name || r.username}</p>
-                        <p className="text-zinc-500 text-xs">@{r.username}</p>
+                        <p className="text-zinc-500 text-xs">@{r.username} (авто)</p>
                       </div>
                     ) : (
                       <div>
@@ -1727,7 +1892,41 @@ function TributePaymentsPanel() {
                   <td className="py-2 px-3 text-zinc-400">{r.event_name}</td>
                   <td className="py-2 px-3 text-right text-white">{fmtAmount(r.amount, r.currency)}</td>
                   <td className="py-2 px-3 text-zinc-500 whitespace-nowrap">{fmtDate(r.expires_at)}</td>
-                  <td className="py-2 px-3"><span className="text-xs text-zinc-500 uppercase">{r.source}</span></td>
+                  <td className="py-2 px-3">
+                    {r.user_id && !r.username ? (
+                      <button
+                        onClick={() => unlinkPayment(r.id)}
+                        disabled={linkingId === r.id}
+                        className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
+                      >
+                        Отвязать
+                      </button>
+                    ) : r.username ? (
+                      <span className="text-xs text-green-500">✓</span>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={linkUserId[r.id] || ''}
+                          onChange={e => setLinkUserId(prev => ({ ...prev, [r.id]: e.target.value }))}
+                          className="bg-zinc-800 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none max-w-[120px]"
+                        >
+                          <option value="">Выбрать...</option>
+                          {allUsers.map(u => (
+                            <option key={u.id} value={u.id}>{u.username}</option>
+                          ))}
+                        </select>
+                        {linkUserId[r.id] && (
+                          <button
+                            onClick={() => linkPayment(r.id, linkUserId[r.id])}
+                            disabled={linkingId === r.id}
+                            className="text-xs bg-orange-500 text-white px-2 py-1 rounded-lg hover:bg-orange-400 disabled:opacity-50"
+                          >
+                            {linkingId === r.id ? '…' : 'Привязать'}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -21,6 +21,14 @@ interface Device {
   created_at: string;
 }
 
+/** Parse a SQLite UTC timestamp (with or without T/Z) into a local Date */
+function parseDbDate(s: string | null | undefined): Date | null {
+  if (!s) return null;
+  const normalized = s.replace(' ', 'T') + (s.includes('Z') || s.includes('+') ? '' : 'Z');
+  const d = new Date(normalized);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 export const Profile = () => {
   const { user, tier, logout, upgradeToPremium, changePassword, changeName } = useAuth();
   const { colorMode, accentColor, setColorMode, setAccentColor } = useTheme();
@@ -184,17 +192,18 @@ export const Profile = () => {
                 </span>
               </div>
               {user?.subscription_expires_at && (() => {
-                const date = new Date(user.subscription_expires_at);
+                const date = parseDbDate(user.subscription_expires_at);
+                if (!date) return null;
                 const diffMs = date.getTime() - Date.now();
                 const diffHours = Math.ceil(diffMs / 3600_000);
                 const diffDays = Math.floor(diffMs / 86400_000);
-                const dateStr = date.toLocaleString('ru', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const dateStr = date.toLocaleString('ru', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
                 const label = diffMs <= 0 ? 'Истекла' : diffHours <= 48 ? `Осталось ${diffHours} ч.` : `Осталось ${diffDays} дн.`;
                 return (
                   <div className="flex justify-between items-start p-3 bg-white/5 rounded-2xl gap-2">
                     <span className="text-zinc-400 text-sm shrink-0">Активна до</span>
-                    <div className="text-right">
-                      <span className="text-orange-400 font-bold text-sm block">{dateStr}</span>
+                    <div className="text-right min-w-0">
+                      <span className="text-orange-400 font-bold text-sm block break-words">{dateStr}</span>
                       <span className="text-zinc-500 text-xs">{label}</span>
                     </div>
                   </div>
@@ -473,20 +482,21 @@ export const Profile = () => {
         </div>
       </div>
 
-      {/* Devices */}
+      {/* Devices / Sessions */}
       <div className="bg-zinc-900 border border-white/5 p-5 rounded-3xl">
-        <h3 className="text-white font-bold mb-1 flex items-center gap-2">
-          <Monitor size={18} className="text-zinc-500" /> Активные устройства
+        <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+          <Monitor size={18} className="text-zinc-500" /> Сессии
         </h3>
-        <p className="text-zinc-600 text-xs mb-5">Максимум 5 устройств на аккаунт</p>
         {devicesLoading ? (
           <div className="text-zinc-600 text-sm text-center py-4">Загрузка...</div>
         ) : devices.length === 0 ? (
-          <div className="text-zinc-600 text-sm text-center py-4">Нет активных устройств</div>
+          <div className="text-zinc-600 text-sm text-center py-4">Нет активных сессий</div>
         ) : (
           <div className="space-y-2">
             {devices.map(device => {
               const isCurrent = device.id === currentDeviceId;
+              const d = parseDbDate(device.last_seen);
+              const lastSeenStr = d ? d.toLocaleString('ru', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' }) : '—';
               return (
                 <div
                   key={device.id}
@@ -495,18 +505,16 @@ export const Profile = () => {
                     isCurrent ? "bg-orange-500/10 border border-orange-500/20" : "bg-white/5"
                   )}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-400">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 shrink-0">
                       {/mobile|android|iphone|ipad/i.test(device.name) ? <Smartphone size={16} /> : <Laptop size={16} />}
                     </div>
-                    <div>
-                      <p className="text-white text-sm font-medium">
+                    <div className="min-w-0">
+                      <p className="text-white text-sm font-medium truncate">
                         {device.name}
                         {isCurrent && <span className="ml-2 text-xs text-orange-400 font-normal">текущее</span>}
                       </p>
-                      <p className="text-zinc-600 text-xs">
-                        {new Date(device.last_seen).toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </p>
+                      <p className="text-zinc-600 text-xs break-words">Последний вход: {lastSeenStr}</p>
                     </div>
                   </div>
                   {!isCurrent && (
