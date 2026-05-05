@@ -2498,8 +2498,9 @@ async function startServer() {
       title: v.title,
       duration: formatDuration(v.duration_in_seconds ?? 0),
       durationSec: v.duration_in_seconds ?? 0,
-      posterUrl: v.poster_url ?? null,
+      posterUrl: v.poster?.md ?? v.poster?.original ?? v.poster_url ?? null,
       embedUrl: `https://kinescope.io/embed/${v.id}`,
+      createdAt: v.created_at ?? null,
     }));
     libVideosCache.set(folderId, { data: result, ts: Date.now() });
     return result;
