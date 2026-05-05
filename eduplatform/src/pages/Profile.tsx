@@ -189,7 +189,14 @@ const PasswordForm = ({
         <button onClick={() => setMode('tg-verify')} className="flex items-center gap-1.5 text-zinc-500 hover:text-white text-sm transition-colors">
           <ArrowLeft size={14} /> Назад
         </button>
-        <p className="text-white font-bold text-center">Новый пароль</p>
+        <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 text-center space-y-1">
+          <p className="text-green-400 font-bold text-sm flex items-center justify-center gap-2">
+            <CheckCircle2 size={16} /> Личность подтверждена
+          </p>
+          <p className="text-zinc-400 text-xs leading-relaxed">
+            Старый пароль сброшен. Придумайте новый пароль — именно он будет использоваться для входа в аккаунт. Старый пароль больше не подойдёт.
+          </p>
+        </div>
         <form onSubmit={handleTgReset} className="space-y-3">
           <div className="space-y-1">
             <div className="relative">
@@ -237,8 +244,8 @@ const PasswordForm = ({
         </div>
         {errors.current && <p className="text-red-400 text-xs px-1">{errors.current}</p>}
         <button type="button" onClick={() => setMode('tg-verify')}
-          className="flex items-center gap-1.5 text-zinc-600 hover:text-orange-400 text-xs px-1 transition-colors">
-          <Send size={11} /> Не помню пароль — сбросить через Telegram
+          className="flex items-center gap-2 mt-1 px-3 py-2 rounded-xl bg-[#229ED9]/10 hover:bg-[#229ED9]/20 border border-[#229ED9]/20 hover:border-[#229ED9]/40 text-[#229ED9] text-xs font-medium transition-all w-full justify-center">
+          <Send size={12} /> Забыл пароль — сбросить через Telegram
         </button>
       </div>
       <div className="space-y-1">
@@ -325,35 +332,6 @@ const NameForm = ({ user, onSuccess, onCancel }: { user: any; onSuccess: () => v
         </button>
       </div>
     </form>
-  );
-};
-
-// ── Security card (password change, visible on profile) ──────────────────────
-const SecurityCard = () => {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="bg-zinc-900 border border-white/5 rounded-3xl overflow-hidden">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors group"
-      >
-        <span className="text-white font-bold text-sm flex items-center gap-2">
-          <Lock size={16} className="text-zinc-500 group-hover:text-orange-400 transition-colors" />
-          Безопасность
-        </span>
-        <ChevronDown size={16} className={cn("text-zinc-600 transition-transform", open && "rotate-180")} />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
-            <div className="px-5 pb-5">
-              <PasswordForm onSuccess={() => setOpen(false)} onCancel={() => setOpen(false)} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
   );
 };
 
@@ -529,8 +507,6 @@ export const Profile = () => {
           <TelegramLinkCard />
 
           {/* Security card */}
-          <SecurityCard />
-
           {/* Sessions (collapsible) */}
           <div className="bg-zinc-900 border border-white/5 rounded-3xl overflow-hidden">
             <button
@@ -548,7 +524,7 @@ export const Profile = () => {
             <AnimatePresence>
               {devicesOpen && (
                 <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
-                  <div className="px-4 pb-4 space-y-2">
+                  <div className="px-4 pt-2 pb-4 space-y-2">
                     {devicesLoading ? (
                       <p className="text-zinc-600 text-sm text-center py-3">Загрузка...</p>
                     ) : devices.length === 0 ? (
@@ -601,6 +577,7 @@ export const Profile = () => {
         onClose={closeSettings}
         title={
           settingsSection === 'name' ? 'Изменить имя' :
+          settingsSection === 'password' ? 'Сменить пароль' :
           settingsSection === 'appearance' ? 'Оформление' :
           'Настройки'
         }
@@ -610,6 +587,7 @@ export const Profile = () => {
             <motion.div key="main" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-1">
               <SectionLabel>Аккаунт</SectionLabel>
               <SettingsRow icon={<Pencil size={16} />} label="Изменить имя" sublabel={user?.name} onClick={() => setSettingsSection('name')} />
+              <SettingsRow icon={<KeyRound size={16} />} label="Сменить пароль" onClick={() => setSettingsSection('password')} />
 
               <SectionLabel>Внешний вид</SectionLabel>
               <SettingsRow
