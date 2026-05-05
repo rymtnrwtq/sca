@@ -387,146 +387,181 @@ export const Profile = () => {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4 pb-24 md:pb-6 max-w-lg mx-auto">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="pb-24 md:pb-10 max-w-5xl mx-auto px-0 md:px-4">
 
-      {/* ── Hero card ─────────────────────────────────────────────────────── */}
-      <div className="bg-zinc-900 border border-white/5 rounded-3xl p-5">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-700 rounded-[20px] flex items-center justify-center text-white text-2xl font-bold shrink-0 shadow-lg shadow-orange-500/20">
-            {user?.name?.[0] ?? '?'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-white leading-tight truncate">{user?.name}</h1>
-            <p className="text-zinc-500 text-sm truncate">@{user?.username}</p>
-            <span className={cn(
-              "inline-block mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider",
-              tier === 'premium' ? "bg-orange-500/20 text-orange-400" : "bg-green-500/20 text-green-400"
-            )}>
-              {TIER_LABELS[tier]}
-            </span>
-          </div>
-          <button
-            onClick={() => openSettings()}
-            className="w-10 h-10 bg-zinc-800 hover:bg-zinc-700 rounded-2xl flex items-center justify-center text-zinc-400 hover:text-white transition-all shrink-0"
-          >
-            <Settings size={18} />
-          </button>
-        </div>
-      </div>
+      {/* ── Desktop two-column / Mobile single-column ──────────────────────── */}
+      <div className="md:grid md:grid-cols-[340px_1fr] md:gap-6 md:items-start space-y-4 md:space-y-0">
 
-      {/* ── Membership ────────────────────────────────────────────────────── */}
-      <div className="bg-zinc-900 border border-white/5 p-5 rounded-3xl">
-        <h3 className="text-white font-bold mb-4 flex items-center gap-2 text-sm">
-          <Crown size={16} className="text-orange-500" /> Членство SCA
-        </h3>
-        {tier === 'premium' ? (
-          <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 bg-orange-500/10 rounded-2xl border border-orange-500/20">
-              <span className="text-zinc-400 text-sm">Статус</span>
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-500/20 text-orange-400">Premium активна</span>
+        {/* ── LEFT COLUMN ─────────────────────────────────────────────────── */}
+        <div className="space-y-4">
+
+          {/* Hero card */}
+          <div className="bg-zinc-900 border border-white/5 rounded-3xl p-5">
+            {/* Desktop: stacked; Mobile: row */}
+            <div className="hidden md:flex md:flex-col md:items-center md:text-center md:gap-4 md:py-2">
+              <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-700 rounded-[24px] flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-orange-500/20">
+                {user?.name?.[0] ?? '?'}
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-white leading-tight">{user?.name}</h1>
+                <p className="text-zinc-500 text-sm mt-0.5">@{user?.username}</p>
+                <span className={cn(
+                  "inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider",
+                  tier === 'premium' ? "bg-orange-500/20 text-orange-400" : "bg-green-500/20 text-green-400"
+                )}>
+                  {TIER_LABELS[tier]}
+                </span>
+              </div>
+              <button onClick={() => openSettings()}
+                className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-2xl flex items-center justify-center gap-2 text-zinc-300 hover:text-white transition-all text-sm font-medium">
+                <Settings size={15} /> Настройки
+              </button>
             </div>
-            {user?.subscription_expires_at && (() => {
-              const date = parseDbDate(user.subscription_expires_at);
-              if (!date) return null;
-              const diffMs = date.getTime() - Date.now();
-              const diffHours = Math.ceil(diffMs / 3600_000);
-              const diffDays = Math.floor(diffMs / 86400_000);
-              const dateStr = date.toLocaleString('ru', { day: 'numeric', month: 'long', year: 'numeric' });
-              const label = diffMs <= 0 ? 'Истекла' : diffHours <= 48 ? `Осталось ${diffHours} ч.` : `Осталось ${diffDays} дн.`;
-              return (
-                <div className="flex justify-between items-center p-3 bg-white/5 rounded-2xl">
-                  <span className="text-zinc-500 text-sm">Активна до</span>
-                  <div className="text-right">
-                    <span className="text-orange-400 font-bold text-sm block">{dateStr}</span>
-                    <span className="text-zinc-500 text-xs">{label}</span>
-                  </div>
+            {/* Mobile row layout */}
+            <div className="flex items-center gap-4 md:hidden">
+              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-700 rounded-[20px] flex items-center justify-center text-white text-2xl font-bold shrink-0 shadow-lg shadow-orange-500/20">
+                {user?.name?.[0] ?? '?'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg font-bold text-white leading-tight truncate">{user?.name}</h1>
+                <p className="text-zinc-500 text-sm truncate">@{user?.username}</p>
+                <span className={cn(
+                  "inline-block mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider",
+                  tier === 'premium' ? "bg-orange-500/20 text-orange-400" : "bg-green-500/20 text-green-400"
+                )}>
+                  {TIER_LABELS[tier]}
+                </span>
+              </div>
+              <button onClick={() => openSettings()}
+                className="w-10 h-10 bg-zinc-800 hover:bg-zinc-700 rounded-2xl flex items-center justify-center text-zinc-400 hover:text-white transition-all shrink-0">
+                <Settings size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Membership */}
+          <div className="bg-zinc-900 border border-white/5 p-5 rounded-3xl">
+            <h3 className="text-white font-bold mb-4 flex items-center gap-2 text-sm">
+              <Crown size={16} className="text-orange-500" /> Членство SCA
+            </h3>
+            {tier === 'premium' ? (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between p-3 bg-orange-500/10 rounded-2xl border border-orange-500/20">
+                  <span className="text-zinc-400 text-sm">Статус</span>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-500/20 text-orange-400">Premium активна</span>
                 </div>
-              );
-            })()}
-            <a href="https://t.me/tribute/app?profile" target="_blank" rel="noopener noreferrer"
-              className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-2xl font-medium transition-all text-sm flex items-center justify-center">
-              Управление подпиской
-            </a>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 bg-white/5 rounded-2xl">
-              <span className="text-zinc-400 text-sm">Статус</span>
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-green-500/20 text-green-400">Бесплатный</span>
-            </div>
-            <ul className="space-y-1.5 text-sm text-zinc-600 px-1">
-              <li className="flex items-center gap-2"><Lock size={12} className="text-zinc-700 shrink-0" /> Семинары и эфиры</li>
-              <li className="flex items-center gap-2"><Lock size={12} className="text-zinc-700 shrink-0" /> Материалы и мастер-классы</li>
-            </ul>
-            <a href="https://web.tribute.tg/s/kCa" target="_blank" rel="noopener noreferrer"
-              className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2 text-sm">
-              <Crown size={15} /> Оформить Premium
-            </a>
-          </div>
-        )}
-      </div>
-
-      <TelegramLinkCard />
-
-      {/* ── Sessions (collapsible) ─────────────────────────────────────────── */}
-      <div className="bg-zinc-900 border border-white/5 rounded-3xl overflow-hidden">
-        <button
-          onClick={() => setDevicesOpen(v => !v)}
-          className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors"
-        >
-          <span className="text-white font-bold text-sm flex items-center gap-2">
-            <Monitor size={16} className="text-zinc-500" /> Активные сессии
-            {devices.length > 0 && (
-              <span className="bg-zinc-800 text-zinc-400 text-xs px-2 py-0.5 rounded-full">{devices.length}</span>
-            )}
-          </span>
-          <ChevronDown size={16} className={cn("text-zinc-600 transition-transform", devicesOpen && "rotate-180")} />
-        </button>
-        <AnimatePresence>
-          {devicesOpen && (
-            <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
-              <div className="px-4 pb-4 space-y-2">
-                {devicesLoading ? (
-                  <p className="text-zinc-600 text-sm text-center py-3">Загрузка...</p>
-                ) : devices.length === 0 ? (
-                  <p className="text-zinc-600 text-sm text-center py-3">Нет активных сессий</p>
-                ) : devices.map(device => {
-                  const isCurrent = device.id === currentDeviceId;
-                  const d = parseDbDate(device.last_seen);
-                  const lastSeenStr = d ? d.toLocaleString('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+                {user?.subscription_expires_at && (() => {
+                  const date = parseDbDate(user.subscription_expires_at);
+                  if (!date) return null;
+                  const diffMs = date.getTime() - Date.now();
+                  const diffHours = Math.ceil(diffMs / 3600_000);
+                  const diffDays = Math.floor(diffMs / 86400_000);
+                  const dateStr = date.toLocaleString('ru', { day: 'numeric', month: 'short', year: 'numeric' });
+                  const remaining = diffMs <= 0 ? 'истекла' : diffHours <= 48 ? `${diffHours} ч.` : `${diffDays} дн.`;
+                  const expired = diffMs <= 0;
                   return (
-                    <div key={device.id} className={cn(
-                      "flex items-center justify-between p-3 rounded-2xl",
-                      isCurrent ? "bg-orange-500/10 border border-orange-500/20" : "bg-white/5"
-                    )}>
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 shrink-0">
-                          {/mobile|android|iphone|ipad/i.test(device.name) ? <Smartphone size={14} /> : <Laptop size={14} />}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-white text-sm font-medium truncate">
-                            {device.name}
-                            {isCurrent && <span className="ml-1.5 text-xs text-orange-400 font-normal">текущее</span>}
-                          </p>
-                          <p className="text-zinc-600 text-xs">{lastSeenStr}</p>
-                        </div>
-                      </div>
-                      {!isCurrent && (
-                        <button onClick={() => removeDevice(device.id)}
-                          className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:text-red-400 transition-colors rounded-xl hover:bg-white/5 shrink-0">
-                          <Trash2 size={14} />
-                        </button>
-                      )}
+                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-2xl gap-3">
+                      <span className="text-zinc-500 text-sm shrink-0">Активна до</span>
+                      <span className="text-right min-w-0">
+                        <span className="text-orange-400 font-semibold text-sm">{dateStr}</span>
+                        <span className={cn("text-xs ml-1.5", expired ? "text-red-400" : "text-zinc-500")}>· {remaining}</span>
+                      </span>
                     </div>
                   );
-                })}
+                })()}
+                <a href="https://t.me/tribute/app?profile" target="_blank" rel="noopener noreferrer"
+                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-2xl font-medium transition-all text-sm flex items-center justify-center">
+                  Управление подпиской
+                </a>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 bg-white/5 rounded-2xl">
+                  <span className="text-zinc-400 text-sm">Статус</span>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-green-500/20 text-green-400">Бесплатный</span>
+                </div>
+                <ul className="space-y-1.5 text-sm text-zinc-600 px-1">
+                  <li className="flex items-center gap-2"><Lock size={12} className="text-zinc-700 shrink-0" /> Семинары и эфиры</li>
+                  <li className="flex items-center gap-2"><Lock size={12} className="text-zinc-700 shrink-0" /> Материалы и мастер-классы</li>
+                </ul>
+                <a href="https://web.tribute.tg/s/kCa" target="_blank" rel="noopener noreferrer"
+                  className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2 text-sm">
+                  <Crown size={15} /> Оформить Premium
+                </a>
+              </div>
+            )}
+          </div>
 
-      <PaymentHistoryCard />
+        </div>{/* end left column */}
+
+        {/* ── RIGHT COLUMN ────────────────────────────────────────────────── */}
+        <div className="space-y-4">
+
+          <TelegramLinkCard />
+
+          {/* Sessions (collapsible) */}
+          <div className="bg-zinc-900 border border-white/5 rounded-3xl overflow-hidden">
+            <button
+              onClick={() => setDevicesOpen(v => !v)}
+              className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors"
+            >
+              <span className="text-white font-bold text-sm flex items-center gap-2">
+                <Monitor size={16} className="text-zinc-500" /> Активные сессии
+                {devices.length > 0 && (
+                  <span className="bg-zinc-800 text-zinc-400 text-xs px-2 py-0.5 rounded-full">{devices.length}</span>
+                )}
+              </span>
+              <ChevronDown size={16} className={cn("text-zinc-600 transition-transform", devicesOpen && "rotate-180")} />
+            </button>
+            <AnimatePresence>
+              {devicesOpen && (
+                <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+                  <div className="px-4 pb-4 space-y-2">
+                    {devicesLoading ? (
+                      <p className="text-zinc-600 text-sm text-center py-3">Загрузка...</p>
+                    ) : devices.length === 0 ? (
+                      <p className="text-zinc-600 text-sm text-center py-3">Нет активных сессий</p>
+                    ) : devices.map(device => {
+                      const isCurrent = device.id === currentDeviceId;
+                      const d = parseDbDate(device.last_seen);
+                      const lastSeenStr = d ? d.toLocaleString('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+                      return (
+                        <div key={device.id} className={cn(
+                          "flex items-center justify-between p-3 rounded-2xl",
+                          isCurrent ? "bg-orange-500/10 border border-orange-500/20" : "bg-white/5"
+                        )}>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 shrink-0">
+                              {/mobile|android|iphone|ipad/i.test(device.name) ? <Smartphone size={14} /> : <Laptop size={14} />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-white text-sm font-medium truncate">
+                                {device.name}
+                                {isCurrent && <span className="ml-1.5 text-xs text-orange-400 font-normal">текущее</span>}
+                              </p>
+                              <p className="text-zinc-600 text-xs">{lastSeenStr}</p>
+                            </div>
+                          </div>
+                          {!isCurrent && (
+                            <button onClick={() => removeDevice(device.id)}
+                              className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:text-red-400 transition-colors rounded-xl hover:bg-white/5 shrink-0">
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <PaymentHistoryCard />
+
+        </div>{/* end right column */}
+
+      </div>{/* end grid */}
 
       {/* ── Settings BottomSheet ───────────────────────────────────────────── */}
       <BottomSheet
