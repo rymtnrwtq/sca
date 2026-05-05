@@ -1840,26 +1840,46 @@ async function startServer() {
     }
   });
 
+  // Per-video metadata cache to avoid repeated/concurrent Kinescope calls
+  const videoMetaCache = new Map<string, { data: any; ts: number }>();
+  const VIDEO_META_TTL_MS = 6 * 3600_000; // 6 hours
+
+  async function fetchVideoMeta(id: string): Promise<any | null> {
+    const hit = videoMetaCache.get(id);
+    if (hit && Date.now() - hit.ts < VIDEO_META_TTL_MS) return hit.data;
+    try {
+      const data = await kinescopeFetch(`/videos/${id}`);
+      if (data.data) {
+        const result = formatKinescopeVideo(data.data, id);
+        videoMetaCache.set(id, { data: result, ts: Date.now() });
+        return result;
+      }
+    } catch (e) {
+      log.warn({ id, err: (e as Error).message }, 'Kinescope API fetch failed for video');
+    }
+    return null;
+  }
+
+  // Process array in batches with delay to avoid rate limiting
+  async function fetchBatched<T>(items: string[], fn: (id: string) => Promise<T | null>, batchSize = 5, delayMs = 150): Promise<(T | null)[]> {
+    const results: (T | null)[] = [];
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize);
+      const batchResults = await Promise.all(batch.map(fn));
+      results.push(...batchResults);
+      if (i + batchSize < items.length) await new Promise(r => setTimeout(r, delayMs));
+    }
+    return results;
+  }
+
   app.get("/api/videos/by-ids", async (req, res) => {
     try {
       const ids = String(req.query.ids || "").split(",").filter(Boolean);
       if (!ids.length) return res.json({ videos: [] });
 
-      const results = await Promise.all(ids.map(async id => {
-        // Since we no longer store videos in DB, numeric IDs (if any were used as legacy) 
-        // cannot be resolved unless we have a mapping. 
-        // For now, we assume all provided IDs are Kinescope UUIDs or valid video IDs.
-        try {
-          const data = await kinescopeFetch(`/videos/${id}`);
-          if (data.data) return formatKinescopeVideo(data.data, id);
-        } catch (e) {
-          log.warn({ id, err: (e as Error).message }, 'Kinescope API fetch failed for video');
-        }
-        return null;
-      }));
-
+      const results = await fetchBatched(ids, fetchVideoMeta);
       const filtered = results.filter(Boolean);
-      log.info({ requested: ids, resolved: filtered.map(v => v?.id) }, '[API] /api/videos/by-ids');
+      log.info({ requested: ids.length, resolved: filtered.length }, '[API] /api/videos/by-ids');
       res.json({ videos: filtered });
     } catch (e: any) {
       log.error(e, 'Critical error in /api/videos/by-ids');
