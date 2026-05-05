@@ -245,7 +245,7 @@ export const VideoPlayerView = ({
       <div>
         <h3 className="text-zinc-400 font-semibold text-sm uppercase tracking-wider mb-3 pl-2">Другие видео</h3>
         <VideoListCompact
-          videos={videos.filter(v => v.id !== video.id).slice(0, 3)}
+          videos={videos.filter(v => v.id !== video.id).sort(() => Math.random() - 0.5).slice(0, 3)}
           loading={loading}
           activeVideo={video}
           onPlay={onPlay}

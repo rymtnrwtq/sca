@@ -11,7 +11,7 @@ export const MAX_HISTORY = 50;
 export const TIER_LABELS: Record<UserTier, string> = {
   guest: 'Гость',
   free: 'Бесплатный',
-  premium: 'Premium',
+  premium: 'Подписка',
 };
 
 export const SECTION_META: Record<string, { label: string }> = {

@@ -5,7 +5,7 @@ import {
   User as UserIcon, LogOut, Crown, Lock, Settings,
   ChevronRight, EyeOff, Eye, Shield, KeyRound, Pencil, Monitor, Trash2,
   Laptop, Smartphone, Sun, Moon, Palette, Check, Bell, BellOff,
-  Send, CheckCircle2, ArrowLeft, X, ChevronDown,
+  Send, CheckCircle2, ArrowLeft, X, ChevronDown, Gift, Link2,
 } from 'lucide-react';
 import { useAuth, TelegramUser } from '../contexts/AuthContext';
 import { useTheme, AccentColor, ACCENT_LABELS, ACCENT_HEX, ColorMode } from '../contexts/ThemeContext';
@@ -455,7 +455,7 @@ export const Profile = () => {
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between p-3 bg-orange-500/10 rounded-2xl border border-orange-500/20">
                   <span className="text-zinc-400 text-sm">Статус</span>
-                  <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-500/20 text-orange-400">Premium активна</span>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-500/20 text-orange-400">Подписка активна</span>
                 </div>
                 {user?.subscription_expires_at && (() => {
                   const date = parseDbDate(user.subscription_expires_at);
@@ -477,8 +477,16 @@ export const Profile = () => {
                   );
                 })()}
                 <a href="https://t.me/tribute/app?profile" target="_blank" rel="noopener noreferrer"
-                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-2xl font-medium transition-all text-sm flex items-center justify-center">
-                  Управление подпиской
+                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-2xl font-medium transition-all text-sm flex items-center justify-center gap-2">
+                  <Settings size={14} /> Управление подпиской
+                </a>
+                <a href="https://t.me/tribute/app?startapp=skCa" target="_blank" rel="noopener noreferrer"
+                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-2xl font-medium transition-all text-sm flex items-center justify-center gap-2">
+                  <Gift size={14} /> Подарить подписку
+                </a>
+                <a href="https://t.me/tribute/app?startapp=o5GanUTWxfbL" target="_blank" rel="noopener noreferrer"
+                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-2xl font-medium transition-all text-sm flex items-center justify-center gap-2">
+                  <Link2 size={14} /> Реферальная ссылка
                 </a>
               </div>
             ) : (
@@ -493,7 +501,15 @@ export const Profile = () => {
                 </ul>
                 <a href="https://web.tribute.tg/s/kCa" target="_blank" rel="noopener noreferrer"
                   className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2 text-sm">
-                  <Crown size={15} /> Оформить Premium
+                  <Crown size={15} /> Оформить подписку
+                </a>
+                <a href="https://t.me/tribute/app?startapp=skCa" target="_blank" rel="noopener noreferrer"
+                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-2xl font-medium transition-all text-sm flex items-center justify-center gap-2">
+                  <Gift size={14} /> Подарить подписку
+                </a>
+                <a href="https://t.me/tribute/app?startapp=o5GanUTWxfbL" target="_blank" rel="noopener noreferrer"
+                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-2xl font-medium transition-all text-sm flex items-center justify-center gap-2">
+                  <Link2 size={14} /> Реферальная ссылка
                 </a>
               </div>
             )}

@@ -18,13 +18,13 @@ export const LiveBroadcast = () => {
         <div className="w-20 h-20 bg-zinc-900 rounded-3xl flex items-center justify-center text-zinc-700 mb-6">
           <Lock size={40} />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Только для Premium</h2>
-        <p className="text-zinc-500 mb-8 max-w-xs">Прямые эфиры доступны только пользователям с активной подпиской Premium</p>
+        <h2 className="text-2xl font-bold text-white mb-2">Только для подписчиков</h2>
+        <p className="text-zinc-500 mb-8 max-w-xs">Прямые эфиры доступны только пользователям с активной подпиской</p>
         <button
           onClick={() => navigate('/profile')}
           className="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold transition-all flex items-center gap-2 shadow-lg shadow-orange-500/20"
         >
-          <Crown size={18} /> Оформить Premium
+          <Crown size={18} /> Оформить подписку
         </button>
       </div>
     );

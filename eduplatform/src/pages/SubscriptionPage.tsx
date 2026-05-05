@@ -34,7 +34,7 @@ export const SubscriptionPage = () => {
         </button>
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">Подписка</h1>
-          <p className="text-zinc-500 text-sm">{isActive ? 'Premium активна' : 'SCA Premium — полный доступ'}</p>
+          <p className="text-zinc-500 text-sm">{isActive ? 'Подписка активна' : 'SCA — полный доступ'}</p>
         </div>
       </div>
 
@@ -89,7 +89,7 @@ export const SubscriptionPage = () => {
 
       {/* Features */}
       <div className="bg-zinc-900 border border-white/5 p-5 rounded-3xl">
-        <h3 className="text-white font-bold mb-3">Что входит в Premium</h3>
+        <h3 className="text-white font-bold mb-3">Что входит в подписку</h3>
         <ul className="space-y-2">
           {[
             'Полный доступ ко всем семинарам',
