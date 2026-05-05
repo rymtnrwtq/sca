@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Eye, EyeOff, Send, ArrowLeft, CheckCircle2, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, Send, ArrowLeft, CheckCircle2, ChevronDown, KeyRound } from 'lucide-react';
 import { useAuth, TelegramUser } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
 import { TelegramAuth } from '../components/TelegramAuth';
@@ -66,12 +66,12 @@ const PwdHints = ({ pwd }: { pwd: string }) => (
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-type Step = 'login' | 'register' | 'link-telegram';
+type Step = 'login' | 'register' | 'link-telegram' | 'forgot-password' | 'set-new-password';
 
 export const Auth = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login, register, telegramSignin, linkTelegram, refreshUser, user, isLoading } = useAuth();
+  const { login, register, telegramSignin, linkTelegram, refreshUser, resetPasswordViaTelegram, resetPasswordViaToken, user, isLoading } = useAuth();
 
   // Redirect already-logged-in users to home
   useEffect(() => {
@@ -102,6 +102,15 @@ export const Auth = () => {
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkError, setLinkError] = useState('');
   const [linkDone, setLinkDone] = useState(false);
+
+  // Forgot password / reset via Telegram
+  const [resetTgUser, setResetTgUser] = useState<TelegramUser | null>(null);
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [newPwd, setNewPwd] = useState('');
+  const [newPwdConfirm, setNewPwdConfirm] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
 
   // ── Login by password ──────────────────────────────────────────────────────
 
@@ -193,6 +202,62 @@ export const Auth = () => {
     setTimeout(() => navigate('/'), 1200);
   };
 
+  // ── Forgot password via Telegram ───────────────────────────────────────────
+
+  // Called by TelegramAuth widget path (tgUser provided) or bot-code path (tgUser undefined)
+  const handleForgotTelegram = async (tgUser?: TelegramUser) => {
+    if (tgUser) {
+      // Widget: store tg data and go to password entry
+      setResetTgUser(tgUser);
+      setResetToken(null);
+      setNewPwd('');
+      setNewPwdConfirm('');
+      setResetError('');
+      setStep('set-new-password');
+    }
+    // Bot-code path: onResetToken fires first (see handleResetToken), then onAuth() calls this
+    // with undefined — by that point resetToken is already set, so just switch step
+    else {
+      setNewPwd('');
+      setNewPwdConfirm('');
+      setResetError('');
+      setStep('set-new-password');
+    }
+  };
+
+  // Called by BotCodePanel when reset-complete returns a one-time token
+  const handleResetToken = (token: string) => {
+    setResetToken(token);
+    setResetTgUser(null);
+  };
+
+  const handleSetNewPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPwd) { setResetError('Введите новый пароль'); return; }
+    if (newPwd.length < 8) { setResetError('Минимум 8 символов'); return; }
+    if (!/[A-Z]/.test(newPwd)) { setResetError('Нужна заглавная буква'); return; }
+    if (!/[0-9]/.test(newPwd)) { setResetError('Нужна цифра'); return; }
+    if (newPwd !== newPwdConfirm) { setResetError('Пароли не совпадают'); return; }
+
+    setResetError('');
+    setResetLoading(true);
+    let err: string | null;
+    if (resetTgUser) {
+      err = await resetPasswordViaTelegram(resetTgUser, newPwd);
+    } else if (resetToken) {
+      err = await resetPasswordViaToken(resetToken, newPwd);
+    } else {
+      err = 'Данные для сброса утеряны. Начните заново.';
+    }
+    setResetLoading(false);
+    if (err) { setResetError(err); return; }
+    setResetDone(true);
+    setTimeout(() => {
+      setResetDone(false);
+      setStep('login');
+    }, 2500);
+  };
+
   // ─────────────────────────────────────────────────────────────────────────────
 
   const card = "w-full max-w-md bg-zinc-900 border border-white/5 p-6 sm:p-8 rounded-[28px] sm:rounded-[40px] shadow-2xl";
@@ -282,13 +347,21 @@ export const Auth = () => {
                 </AnimatePresence>
               </div>
 
-              <p className="text-zinc-600 text-sm text-center mt-5">
-                Нет аккаунта?{' '}
-                <button onClick={() => { setStep('register'); setLoginError(''); }}
-                  className="text-orange-400 hover:text-orange-300 font-bold transition-colors">
-                  Зарегистрироваться
+              <div className="mt-5 flex flex-col items-center gap-2">
+                <button
+                  onClick={() => { setStep('forgot-password'); setLoginError(''); setResetError(''); setResetDone(false); }}
+                  className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-sm transition-colors"
+                >
+                  <KeyRound size={14} /> Забыли пароль?
                 </button>
-              </p>
+                <p className="text-zinc-600 text-sm">
+                  Нет аккаунта?{' '}
+                  <button onClick={() => { setStep('register'); setLoginError(''); }}
+                    className="text-orange-400 hover:text-orange-300 font-bold transition-colors">
+                    Зарегистрироваться
+                  </button>
+                </p>
+              </div>
             </motion.div>
           )}
 
@@ -376,6 +449,80 @@ export const Auth = () => {
                     className="w-full py-3 text-zinc-500 hover:text-white text-sm transition-colors">
                     Пропустить, привяжу позже в профиле
                   </button>
+                </>
+              )}
+            </motion.div>
+          )}
+
+          {/* ── STEP: Forgot password — verify via Telegram ─────────────── */}
+          {step === 'forgot-password' && (
+            <motion.div key="forgot-password" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+              className="space-y-5">
+              <button onClick={() => setStep('login')}
+                className="flex items-center gap-1 text-zinc-500 hover:text-white text-sm transition-colors">
+                <ArrowLeft size={15} /> Назад
+              </button>
+
+              <div className="flex flex-col items-center gap-2 text-center">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-1"
+                  style={{ backgroundColor: `${TG_BLUE}22` }}>
+                  <Send size={28} style={{ color: TG_BLUE }} />
+                </div>
+                <h2 className="text-white font-bold text-xl">Сброс пароля</h2>
+                <p className="text-zinc-400 text-sm leading-relaxed">
+                  Подтвердите личность через Telegram, привязанный к аккаунту, — затем задайте новый пароль.
+                </p>
+              </div>
+
+              <TelegramAuth
+                onAuth={handleForgotTelegram}
+                mode="reset"
+                onResetToken={handleResetToken}
+              />
+            </motion.div>
+          )}
+
+          {/* ── STEP: Set new password after Telegram verification ────────── */}
+          {step === 'set-new-password' && (
+            <motion.div key="set-new-password" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+              className="space-y-5">
+
+              {resetDone ? (
+                <div className="flex flex-col items-center gap-3 py-6">
+                  <CheckCircle2 size={48} className="text-green-400" />
+                  <p className="text-white font-bold text-lg">Пароль изменён!</p>
+                  <p className="text-zinc-500 text-sm text-center">Теперь вы можете войти с новым паролем.</p>
+                </div>
+              ) : (
+                <>
+                  <button onClick={() => setStep('forgot-password')}
+                    className="flex items-center gap-1 text-zinc-500 hover:text-white text-sm transition-colors">
+                    <ArrowLeft size={15} /> Назад
+                  </button>
+
+                  <div className="text-center">
+                    <h2 className="text-white font-bold text-xl mb-1">Новый пароль</h2>
+                    <p className="text-zinc-500 text-sm">Придумайте новый пароль для вашего аккаунта.</p>
+                  </div>
+
+                  <form onSubmit={handleSetNewPassword} className="space-y-3">
+                    <div className="space-y-1">
+                      <PwdInput placeholder="Новый пароль" value={newPwd}
+                        onChange={v => { setNewPwd(v); setResetError(''); }}
+                        autoComplete="new-password" autoFocus />
+                      <PwdHints pwd={newPwd} />
+                    </div>
+                    <PwdInput placeholder="Повторите пароль" value={newPwdConfirm}
+                      onChange={v => { setNewPwdConfirm(v); setResetError(''); }}
+                      autoComplete="new-password" />
+
+                    {resetError && <p className="text-red-400 text-sm text-center">{resetError}</p>}
+
+                    <button type="submit" disabled={resetLoading}
+                      className="w-full py-4 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-2xl font-bold text-lg transition-all shadow-lg shadow-orange-500/20 mt-1">
+                      {resetLoading ? '...' : 'Сохранить пароль'}
+                    </button>
+                  </form>
                 </>
               )}
             </motion.div>

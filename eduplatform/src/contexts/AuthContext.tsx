@@ -103,6 +103,8 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<string | null>;
   changeName: (name: string) => Promise<string | null>;
+  resetPasswordViaTelegram: (telegram: TelegramUser, newPassword: string) => Promise<string | null>;
+  resetPasswordViaToken: (resetToken: string, newPassword: string) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -388,6 +390,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const resetPasswordViaTelegram = async (telegram: TelegramUser, newPassword: string): Promise<string | null> => {
+    try {
+      const res = await fetch('/api/auth/reset-password-via-telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram, newPassword }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) return null;
+      return data.message ?? 'Ошибка сброса пароля';
+    } catch {
+      return 'Ошибка сети';
+    }
+  };
+
+  const resetPasswordViaToken = async (resetToken: string, newPassword: string): Promise<string | null> => {
+    try {
+      const res = await fetch('/api/auth/reset-password-via-telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reset_token: resetToken, newPassword }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) return null;
+      return data.message ?? 'Ошибка сброса пароля';
+    } catch {
+      return 'Ошибка сети';
+    }
+  };
+
   const changeName = async (name: string): Promise<string | null> => {
     const token = localStorage.getItem('auth_token');
     if (!token) return 'Не авторизован';
@@ -410,7 +442,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, tier, isLoading, isPaywallOpen, setPaywallOpen, login, register, telegramLogin, telegramRegister, telegramSignin, linkTelegram, unlinkTelegram, logout, continueAsGuest, upgradeToPremium, refreshUser, changePassword, changeName }}>
+    <AuthContext.Provider value={{ user, tier, isLoading, isPaywallOpen, setPaywallOpen, login, register, telegramLogin, telegramRegister, telegramSignin, linkTelegram, unlinkTelegram, logout, continueAsGuest, upgradeToPremium, refreshUser, changePassword, changeName, resetPasswordViaTelegram, resetPasswordViaToken }}>
       {children}
     </AuthContext.Provider>
   );

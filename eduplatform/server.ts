@@ -810,10 +810,14 @@ function verifyTelegramHash(data: Record<string, string>): boolean {
 interface BotAuthEntry {
   created: number;
   telegramUser?: Record<string, any>;
-  mode: 'signin' | 'link'; // signin = login, link = link to existing session
+  mode: 'signin' | 'link' | 'reset';
 }
 const pendingBotAuths = new Map<string, BotAuthEntry>();
 const BOT_AUTH_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+// One-time password-reset tokens issued after Telegram identity is verified
+const pendingPasswordResets = new Map<string, { userId: string; created: number }>();
+const RESET_TOKEN_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 function cleanupBotAuths() {
   const now = Date.now();
@@ -914,10 +918,11 @@ async function pollBotUpdates() {
           auth_date: Math.floor(Date.now() / 1000),
         };
 
-        // Determine if this is a signin (needs site account) or link (account exists)
         const replyText = entry.mode === 'signin'
           ? '✅ Код принят! Вернитесь на сайт — вход выполнится автоматически.'
-          : '✅ Код принят! Вернитесь на сайт — Telegram будет привязан автоматически.';
+          : entry.mode === 'reset'
+            ? '✅ Код принят! Вернитесь на сайт — вы сможете задать новый пароль.'
+            : '✅ Код принят! Вернитесь на сайт — Telegram будет привязан автоматически.';
 
         log.info({ code, chatId }, '[BotAuth] sending reply');
         setTimeout(() => botSend(chatId, replyText), 2000);
@@ -1396,6 +1401,95 @@ async function startServer() {
       res.json({ success: true });
     } catch (e: any) {
       log.error(e, '[Auth] BotCode link error');
+      res.status(500).json({ success: false, message: 'Внутренняя ошибка' });
+    }
+  });
+
+  // ── Password reset via Telegram ───────────────────────────────────────────────
+
+  // 5. Generate a bot-code for password reset (no auth required)
+  app.post("/api/auth/bot-code/reset-start", (req, res) => {
+    cleanupBotAuths();
+    const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+    pendingBotAuths.set(code, { created: Date.now(), mode: 'reset' });
+    res.json({ code, bot_username: 'Swimming_Coaches_Association_bot', expires_in: 600 });
+  });
+
+  // 6. Complete reset: verify bot-code, find user by telegram_id, issue one-time reset token
+  app.post("/api/auth/bot-code/reset-complete", async (req, res) => {
+    try {
+      const code = String(req.body.code || '').toUpperCase();
+      const entry = pendingBotAuths.get(code);
+      if (!entry || !entry.telegramUser || entry.mode !== 'reset') {
+        return res.status(400).json({ success: false, message: 'Код не подтверждён или истёк' });
+      }
+      if (Date.now() - entry.created > BOT_AUTH_TTL_MS) {
+        pendingBotAuths.delete(code);
+        return res.status(400).json({ success: false, message: 'Код истёк, начните заново' });
+      }
+      pendingBotAuths.delete(code);
+
+      const tgUser = entry.telegramUser;
+      const telegramId = String(tgUser.id);
+      const row = db.prepare("SELECT id FROM users WHERE telegram_id = ?").get(telegramId) as any;
+      if (!row) {
+        return res.status(404).json({ success: false, message: 'Этот Telegram не привязан ни к одному аккаунту' });
+      }
+
+      const resetToken = crypto.randomBytes(24).toString('hex');
+      pendingPasswordResets.set(resetToken, { userId: row.id, created: Date.now() });
+      log.info({ userId: row.id, telegramId }, '[Auth] Password reset token issued (bot-code)');
+      res.json({ success: true, reset_token: resetToken });
+    } catch (e: any) {
+      log.error(e, '[Auth] BotCode reset-complete error');
+      res.status(500).json({ success: false, message: 'Внутренняя ошибка' });
+    }
+  });
+
+  // 7. Reset password — accepts either a one-time reset_token (bot-code path)
+  //    or a fresh Telegram widget auth (widget path)
+  app.post("/api/auth/reset-password-via-telegram", async (req, res) => {
+    try {
+      const { reset_token, telegram, newPassword } = req.body;
+
+      if (!newPassword || typeof newPassword !== 'string') {
+        return res.status(400).json({ success: false, message: 'Введите новый пароль' });
+      }
+      if (newPassword.length < 8) return res.status(400).json({ success: false, message: 'Минимум 8 символов' });
+      if (!/[A-Z]/.test(newPassword)) return res.status(400).json({ success: false, message: 'Нужна заглавная буква' });
+      if (!/[0-9]/.test(newPassword)) return res.status(400).json({ success: false, message: 'Нужна цифра' });
+
+      let userId: string | null = null;
+
+      if (reset_token) {
+        // Bot-code path: one-time token
+        const entry = pendingPasswordResets.get(String(reset_token));
+        if (!entry) return res.status(400).json({ success: false, message: 'Токен не найден или истёк' });
+        if (Date.now() - entry.created > RESET_TOKEN_TTL_MS) {
+          pendingPasswordResets.delete(String(reset_token));
+          return res.status(400).json({ success: false, message: 'Токен истёк, начните заново' });
+        }
+        pendingPasswordResets.delete(String(reset_token));
+        userId = entry.userId;
+      } else if (telegram) {
+        // Widget path: verify Telegram signature
+        if (!verifyTelegramHash(telegram)) {
+          return res.status(400).json({ success: false, message: 'Неверная подпись Telegram' });
+        }
+        const telegramId = String(telegram.id);
+        const row = db.prepare("SELECT id FROM users WHERE telegram_id = ?").get(telegramId) as any;
+        if (!row) return res.status(404).json({ success: false, message: 'Этот Telegram не привязан ни к одному аккаунту' });
+        userId = row.id;
+      } else {
+        return res.status(400).json({ success: false, message: 'Требуется подтверждение Telegram' });
+      }
+
+      const hash = await bcrypt.hash(newPassword, 10);
+      db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(hash, userId);
+      log.info({ userId }, '[Auth] Password reset via Telegram success');
+      res.json({ success: true });
+    } catch (e: any) {
+      log.error(e, '[Auth] reset-password-via-telegram error');
       res.status(500).json({ success: false, message: 'Внутренняя ошибка' });
     }
   });

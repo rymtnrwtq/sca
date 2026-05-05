@@ -127,12 +127,14 @@ const BotCodePanel = ({
   authToken,
   onActivate,
   onReset,
+  onResetToken,
 }: {
   onAuth: () => void;
-  mode: 'signin' | 'link';
+  mode: 'signin' | 'link' | 'reset';
   authToken?: string;
   onActivate?: () => void;
   onReset?: () => void;
+  onResetToken?: (token: string) => void;
 }) => {
   const [status, setStatus] = useState<BotStatus>('idle');
   const [code, setCode] = useState('');
@@ -143,6 +145,18 @@ const BotCodePanel = ({
 
   const complete = useCallback(async (c: string) => {
     stopPolling();
+    if (mode === 'reset') {
+      const r = await fetch('/api/auth/bot-code/reset-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: c }),
+      });
+      const data = await r.json();
+      if (!data.success) { setError(data.message || 'Аккаунт не найден'); setStatus('error'); return; }
+      onResetToken?.(data.reset_token);
+      onAuth();
+      return;
+    }
     const endpoint = mode === 'signin' ? '/api/auth/bot-code/signin' : '/api/auth/bot-code/link';
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
@@ -155,7 +169,7 @@ const BotCodePanel = ({
     } else {
       onAuth();
     }
-  }, [mode, authToken, onAuth]);
+  }, [mode, authToken, onAuth, onResetToken]);
 
   const poll = useCallback((c: string) => {
     pollRef.current = setTimeout(async () => {
@@ -174,7 +188,8 @@ const BotCodePanel = ({
     setStatus('waiting');
     onActivate?.();
     try {
-      const r = await fetch('/api/auth/bot-code/start', { method: 'POST' });
+      const startEndpoint = mode === 'reset' ? '/api/auth/bot-code/reset-start' : '/api/auth/bot-code/start';
+      const r = await fetch(startEndpoint, { method: 'POST' });
       const data = await r.json();
       setCode(data.code);
       poll(data.code);
@@ -231,10 +246,13 @@ export const TelegramAuth = ({
   onAuth,
   mode = 'signin',
   authToken,
+  onResetToken,
 }: {
   onAuth: (u?: TelegramUser) => void;
-  mode?: 'signin' | 'link';
+  mode?: 'signin' | 'link' | 'reset';
   authToken?: string;
+  /** Called with the one-time reset token when bot-code reset flow completes */
+  onResetToken?: (token: string) => void;
 }) => {
   const widgetRef = useRef<HTMLDivElement>(null);
   const [widgetTimedOut, setWidgetTimedOut] = useState(false);
@@ -290,6 +308,7 @@ export const TelegramAuth = ({
         authToken={authToken}
         onActivate={() => setBotMode(true)}
         onReset={() => setBotMode(false)}
+        onResetToken={onResetToken}
       />
     </div>
   );
