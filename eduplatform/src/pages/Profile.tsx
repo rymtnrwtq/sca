@@ -328,6 +328,35 @@ const NameForm = ({ user, onSuccess, onCancel }: { user: any; onSuccess: () => v
   );
 };
 
+// ── Security card (password change, visible on profile) ──────────────────────
+const SecurityCard = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="bg-zinc-900 border border-white/5 rounded-3xl overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors group"
+      >
+        <span className="text-white font-bold text-sm flex items-center gap-2">
+          <Lock size={16} className="text-zinc-500 group-hover:text-orange-400 transition-colors" />
+          Безопасность
+        </span>
+        <ChevronDown size={16} className={cn("text-zinc-600 transition-transform", open && "rotate-180")} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+            <div className="px-5 pb-5">
+              <PasswordForm onSuccess={() => setOpen(false)} onCancel={() => setOpen(false)} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 // ── Main Profile component ────────────────────────────────────────────────────
 export const Profile = () => {
   const { user, tier, logout, changePassword, changeName, resetPasswordViaTelegram, resetPasswordViaToken } = useAuth();
@@ -499,6 +528,9 @@ export const Profile = () => {
 
           <TelegramLinkCard />
 
+          {/* Security card */}
+          <SecurityCard />
+
           {/* Sessions (collapsible) */}
           <div className="bg-zinc-900 border border-white/5 rounded-3xl overflow-hidden">
             <button
@@ -569,7 +601,6 @@ export const Profile = () => {
         onClose={closeSettings}
         title={
           settingsSection === 'name' ? 'Изменить имя' :
-          settingsSection === 'password' ? 'Сменить пароль' :
           settingsSection === 'appearance' ? 'Оформление' :
           'Настройки'
         }
@@ -579,7 +610,6 @@ export const Profile = () => {
             <motion.div key="main" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-1">
               <SectionLabel>Аккаунт</SectionLabel>
               <SettingsRow icon={<Pencil size={16} />} label="Изменить имя" sublabel={user?.name} onClick={() => setSettingsSection('name')} />
-              <SettingsRow icon={<KeyRound size={16} />} label="Сменить пароль" onClick={() => setSettingsSection('password')} />
 
               <SectionLabel>Внешний вид</SectionLabel>
               <SettingsRow
