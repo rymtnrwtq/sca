@@ -828,9 +828,7 @@ function cleanupBotAuths() {
 
 let botPollOffset = 0;
 
-// Vienna server proxy (85.192.42.103) → api.telegram.org
-// All Telegram API calls go through Vienna to bypass Russian DPI
-const TG_PROXY_BASE = `http://85.192.42.103:8088`;
+const TG_PROXY_BASE = `https://api.telegram.org`;
 const BOT_SEND_URL = `${TG_PROXY_BASE}/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
 async function botSend(chatId: number, text: string) {
