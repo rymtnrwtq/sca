@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Search, SlidersHorizontal, Bookmark, EyeOff, ChevronUp, ChevronDown, X, Radio } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -76,8 +76,14 @@ function dbItemToCatalogItem(item: DbCatalogItem): CatalogItem {
 
 export const Learn = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const prefs = loadLearnPrefs();
-  const [activeTab, setActiveTab] = useState<string>(prefs.activeTab ?? 'broadcasts');
+
+  const urlTab = searchParams.get('tab');
+  const urlSub = searchParams.get('sub');
+  const urlCat = searchParams.get('cat');
+
+  const [activeTab, setActiveTab] = useState<string>(urlTab ?? prefs.activeTab ?? 'broadcasts');
 
   // Live broadcast state
   const [liveBroadcast, setLiveBroadcast] = useState<LiveBroadcast>({ active: false });
@@ -142,7 +148,7 @@ export const Learn = () => {
   }, [liveLoading, liveBroadcast.active, activeTab]);
 
   // Seminars sub-navigation
-  const [seminarSubTab, setSeminarSubTab] = useState<string>(prefs.seminarSubTab ?? 'sca');
+  const [seminarSubTab, setSeminarSubTab] = useState<string>(urlSub ?? prefs.seminarSubTab ?? 'sca');
   const [openFolder, setOpenFolder] = useState<CatalogItem | null>(prefs.openFolder ?? null);
 
   // Global search effect
@@ -180,7 +186,7 @@ export const Learn = () => {
   }, [globalSearch]);
 
   // Materials category + folder
-  const [materialCategory, setMaterialCategory] = useState<string>(prefs.materialCategory ?? 'technique');
+  const [materialCategory, setMaterialCategory] = useState<string>(urlCat ?? prefs.materialCategory ?? 'technique');
   const [openMaterialFolder, setOpenMaterialFolder] = useState<CatalogItem | null>(prefs.openMaterialFolder ?? null);
 
   // Persist preferences
@@ -293,6 +299,18 @@ export const Learn = () => {
     setOpenMaterialFolder(null);
     setGlobalSearch('');
     setSearchResults([]);
+    setSearchParams(p => { p.set('tab', tab); p.delete('sub'); p.delete('cat'); return p; }, { replace: false });
+  };
+
+  const handleSubTabChange = (sub: string) => {
+    setSeminarSubTab(sub);
+    setSearchParams(p => { p.set('sub', sub); return p; }, { replace: true });
+  };
+
+  const handleCatChange = (cat: string) => {
+    setMaterialCategory(cat);
+    setOpenMaterialFolder(null);
+    setSearchParams(p => { p.set('cat', cat); return p; }, { replace: true });
   };
 
   return (
@@ -394,219 +412,27 @@ export const Learn = () => {
       )}
 
       {activeTab === 'broadcasts' && (
-        globalSearch ? (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-white px-1">Результаты поиска</h3>
-            <VideoGrid 
-              videos={searchResults} 
-              loading={isSearching} 
-              activeVideo={null}
-              onPlay={v => navigate(`/watch/${v.id}`, { state: { video: v } })} 
-            />
-          </div>
-        ) : (
-          <div className="space-y-5">
-            <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
-              <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-1 w-full lg:w-auto">
-                <button
-                  onClick={() => setIsBroadcastFilterOpen(true)}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 border border-white/10 rounded-2xl text-sm font-bold text-white hover:bg-zinc-800 transition-all shrink-0"
-                >
-                  <SlidersHorizontal size={18} className="text-orange-500" />
-                  Фильтры
-                  {(broadcastStatusFilter !== 'all' || broadcastSort !== 'date') && (
-                    <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <BottomSheet
-              isOpen={isBroadcastFilterOpen}
-              onClose={() => setIsBroadcastFilterOpen(false)}
-              title="Фильтры и сортировка"
-            >
-              <div className="space-y-8">
-                <section>
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Статус</h4>
-                    {(broadcastStatusFilter !== 'all' || broadcastSort !== 'date') && (
-                      <button 
-                        onClick={() => {
-                          setBroadcastStatusFilter('all');
-                          setBroadcastSort('date');
-                          setBroadcastSortDir('desc');
-                          setBroadcastPage(1);
-                        }}
-                        className="text-orange-500 text-[10px] font-bold uppercase tracking-wider hover:underline"
-                      >
-                        Сбросить
-                      </button>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    {(['all', 'progress', 'completed', 'pinned', 'hidden'] as StatusFilter[]).map(fKey => {
-                      const labels: Record<string, string> = {
-                        all: 'Все',
-                        progress: 'В процессе',
-                        completed: 'Завершенные',
-                        pinned: 'Избранное',
-                        hidden: 'Скрытые'
-                      };
-                      const Icon = fKey === 'hidden' ? EyeOff : fKey === 'pinned' ? Bookmark : undefined;
-
-                      return (
-                        <button
-                          key={fKey}
-                          onClick={() => { setBroadcastStatusFilter(fKey); setBroadcastPage(1); }}
-                          className={cn(
-                            "w-full px-4 py-3 rounded-2xl text-sm font-bold transition-all border text-left flex justify-between items-center",
-                            broadcastStatusFilter === fKey
-                              ? "bg-orange-500/10 border-orange-500/50 text-white"
-                              : "bg-white/5 border-white/5 text-zinc-400"
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            {Icon && <Icon size={14} className={broadcastStatusFilter === fKey ? "text-orange-500" : "text-zinc-600"} />}
-                            {labels[fKey]}
-                          </div>
-                          {broadcastStatusFilter === fKey && <div className="w-1.5 h-1.5 bg-orange-500 rounded-full shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-
-                <section>
-                  <h4 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-4">Сортировка</h4>
-                  <div className="space-y-2">
-                    {SORT_OPTIONS.map(o => (
-                      <button
-                        key={o.key}
-                        onClick={() => handleBroadcastSort(o.key)}
-                        className={cn(
-                          "w-full px-4 py-3 rounded-2xl text-sm font-bold transition-all border text-left flex justify-between items-center",
-                          broadcastSort === o.key
-                            ? "bg-orange-500/10 border-orange-500/50 text-white"
-                            : "bg-white/5 border-white/5 text-zinc-400"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          {o.icon} {o.label}
-                        </div>
-                        {broadcastSort === o.key && (
-                          <div className="flex items-center gap-2">
-                             {broadcastSortDir === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                             <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </section>
-
-                <button
-                  onClick={() => setIsBroadcastFilterOpen(false)}
-                  className="w-full py-4 bg-orange-500 text-white rounded-2xl font-bold text-lg shadow-lg shadow-orange-500/20"
-                >
-                  Применить
-                </button>
-              </div>
-            </BottomSheet>
-
-            <VideoGrid
-              videos={paginatedBroadcasts}
-              loading={broadcastLoading}
-              activeVideo={null}
-              onPlay={v => navigate(`/watch/${v.id}`, { state: { video: v, allVideos: broadcastVideos } })}
-            />
-            {displayTotalPages > 1 && (
-              <Pagination 
-                page={broadcastPage} 
-                totalPages={displayTotalPages} 
-                onPageChange={setBroadcastPage} 
-              />
-            )}
-          </div>
-        )
+        <KinescopeBrowser
+          rootFolderId="ff75c5e6-ff79-4001-ba89-86cf8b44cdc4"
+          rootLabel="Лекции Ассоциации"
+          searchQuery={globalSearch}
+        />
       )}
 
-      {(activeTab === 'seminars' || activeTab === 'materials') && globalSearch && (
-        <div className="space-y-8">
-          {activeTab === 'seminars' && (
-            <>
-              {seminarCategories.some(cat => cat.items.some(item =>
-                item.title.toLowerCase().includes(globalSearch.toLowerCase()) ||
-                item.description.toLowerCase().includes(globalSearch.toLowerCase())
-              )) && (
-                <section>
-                  <h3 className="text-xl font-bold text-white px-1 mb-4">Каталоги</h3>
-                  <div className="space-y-6">
-                    {seminarCategories.map(cat => {
-                      const items = cat.items.filter(item =>
-                        item.title.toLowerCase().includes(globalSearch.toLowerCase()) ||
-                        item.description.toLowerCase().includes(globalSearch.toLowerCase())
-                      ).map(dbItemToCatalogItem);
-                      if (items.length === 0) return null;
-                      return (
-                        <div key={cat.category_key} className="space-y-3">
-                          <h4 className="text-sm font-bold text-zinc-500 px-1 uppercase tracking-wider">{cat.label}</h4>
-                          <CatalogGrid items={items} onOpen={setOpenFolder} />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
-            </>
-          )}
-
-          {activeTab === 'materials' && (
-            <>
-              {materialCategories.some(cat => cat.items.some(item =>
-                item.title.toLowerCase().includes(globalSearch.toLowerCase()) ||
-                item.description.toLowerCase().includes(globalSearch.toLowerCase())
-              )) && (
-                <section>
-                  <h3 className="text-xl font-bold text-white px-1 mb-4">Каталоги</h3>
-                  <div className="space-y-6">
-                    {materialCategories.map(cat => {
-                      const items = cat.items.filter(item =>
-                        item.title.toLowerCase().includes(globalSearch.toLowerCase()) ||
-                        item.description.toLowerCase().includes(globalSearch.toLowerCase())
-                      ).map(dbItemToCatalogItem);
-                      if (items.length === 0) return null;
-                      return (
-                        <div key={cat.category_key} className="space-y-3">
-                          <h4 className="text-sm font-bold text-zinc-500 px-1 uppercase tracking-wider">{cat.label}</h4>
-                          <CatalogGrid items={items} onOpen={setOpenMaterialFolder} />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
-            </>
-          )}
-
-          <section>
-            <h3 className="text-xl font-bold text-white px-1 mb-4">Видео</h3>
-            <VideoGrid 
-              videos={searchResults} 
-              loading={isSearching} 
-              activeVideo={null}
-              onPlay={v => navigate(`/watch/${v.id}`, { state: { video: v } })} 
-            />
-          </section>
-        </div>
+      {activeTab === 'seminars' && (
+        <KinescopeBrowser
+          rootFolderId="d5e6dbc8-7a7d-4a94-905a-4ac7dbe60e4a"
+          rootLabel="Семинары"
+          searchQuery={globalSearch}
+        />
       )}
 
-      {activeTab === 'seminars' && !globalSearch && (
-        <JsonSeminarsViewer />
-      )}
-
-      {activeTab === 'materials' && !globalSearch && (
-        <KinescopeBrowser />
+      {activeTab === 'materials' && (
+        <KinescopeBrowser
+          rootFolderId="0866f1d0-35ad-42ba-b402-1291abe6891e"
+          rootLabel="Доп материалы"
+          searchQuery={globalSearch}
+        />
       )}
     </motion.div>
   );

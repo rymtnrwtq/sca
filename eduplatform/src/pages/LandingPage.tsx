@@ -54,6 +54,7 @@ export const LandingPage = () => {
   const { canInstall, guideType, install, dismissGuide } = usePWAInstall();
 
   return (
+    <>
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -170,5 +171,6 @@ export const LandingPage = () => {
       </section>
     </motion.div>
     <InstallGuideModal type={guideType} onDismiss={dismissGuide} />
+    </>
   );
 };

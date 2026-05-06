@@ -5,6 +5,7 @@ import { Play, Lock, Crown, User as UserIcon } from 'lucide-react';
 import { Lesson, DownloadItem } from '../types';
 import { VideoPlayerView } from '../components/video/VideoPlayerView';
 import { useAuth } from '../contexts/AuthContext';
+import { loadWatchHistory } from '../utils/localStorage';
 
 interface WatchState {
   video?: Lesson;
@@ -35,39 +36,53 @@ export const WatchVideo = () => {
     }
     setLoading(true);
 
+    const loadRandomVideos = async (currentVideoId: string) => {
+      try {
+        // Collect watched video IDs (progress >= 70%) from localStorage
+        const history = loadWatchHistory();
+        const watchedIds = history
+          .filter(h => h.progress >= 70)
+          .map(h => h.videoId);
+        const excludeIds = [currentVideoId, ...watchedIds].join(',');
+        const r = await fetch(`/api/random-videos?exclude=${excludeIds}&n=6`);
+        if (r.ok) {
+          const d = await r.json();
+          const vids: Lesson[] = (d.videos ?? []).map((v: any) => ({
+            id: v.id, title: v.title, description: v.description,
+            embedUrl: v.embedUrl, posterUrl: v.posterUrl,
+            duration: v.duration, durationSec: v.durationSec,
+          }));
+          setAllVideos(vids);
+        }
+      } catch {}
+    };
+
     const load = async () => {
       try {
-        // Always fetch from JSON — returns Kinescope metadata + allVideoIds for siblings
+        // Try fetching from content.json + Kinescope metadata
         const r = await fetch(`/api/video-from-json/${videoId}`);
         if (r.ok) {
           const data = await r.json();
-          if (data.id) {
+          // Handle both old { video: ... } wrapper and new flat response
+          const d = data.video ?? data;
+          if (d?.id) {
             const v: Lesson = {
-              id: data.id,
-              title: data.title,
-              description: data.description,
-              embedUrl: data.embedUrl,
-              posterUrl: data.posterUrl,
-              duration: data.duration,
-              durationSec: data.durationSec,
-              chapters: data.chapters,
-              downloads: data.downloads,
-              seminarTitle: data.seminarTitle,
+              id: d.id,
+              title: d.title,
+              description: d.description,
+              embedUrl: d.embedUrl,
+              posterUrl: d.posterUrl,
+              duration: d.duration,
+              durationSec: d.durationSec,
+              chapters: d.chapters,
+              downloads: d.downloads,
+              seminarTitle: d.seminarTitle,
             };
             setVideo(v);
-            setDownloads(data.downloads ?? []);
+            setDownloads(d.downloads ?? []);
 
-            if (data.allVideoIds?.length > 1) {
-              try {
-                const r2 = await fetch(`/api/videos/by-ids?ids=${data.allVideoIds.join(',')}`);
-                const d: { videos: Lesson[] } = r2.ok ? await r2.json() : { videos: [] };
-                setAllVideos(d.videos.length ? d.videos : [v]);
-              } catch {
-                setAllVideos([v]);
-              }
-            } else {
-              setAllVideos([v]);
-            }
+            // Load random unwatched recommendations
+            loadRandomVideos(v.id);
             return;
           }
         }
@@ -78,7 +93,7 @@ export const WatchVideo = () => {
           const data: { videos: Lesson[] } = await r2.json();
           const found = data.videos[0] ?? null;
           setVideo(found);
-          setAllVideos(found ? [found] : []);
+          if (found) loadRandomVideos(found.id);
         }
       } finally {
         setLoading(false);
@@ -101,7 +116,7 @@ export const WatchVideo = () => {
               Зарегистрируйтесь и оформите подписку, чтобы смотреть видео
             </p>
             <button
-              onClick={() => navigate('/auth')}
+              onClick={() => navigate('/auth?tab=register')}
               className="w-full max-w-xs py-4 bg-white text-black rounded-2xl font-bold text-lg transition-all hover:bg-zinc-100 flex items-center justify-center gap-2 mb-3"
             >
               <UserIcon size={20} />
